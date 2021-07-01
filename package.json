@@ -1,0 +1,18 @@
+{
+  "name": "Crop-Locator-Tool",
+  "version": "0.0.0",
+  "description": "Locates and labels crops in larger 3d images.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^2.3.8"
+  },
+  "dependencies": {
+    "gpu.js": "^2.11.3",
+    "p5": "^1.4.0",
+    "tiff": "^4.3.0"
+  }
+}
