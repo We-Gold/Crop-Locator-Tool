@@ -22,9 +22,9 @@ const imagePathToArrayBuffer = async (imagePath) => {
 	return buffer
 }
 
-const createTiffPolyfill = arrayBuffer => [{ data: new Uint8Array(arrayBuffer) }]
+const createTiffPolyfill = (arrayBuffer, dimensions) => [Object.assign({ data: new Uint8Array(arrayBuffer) }, dimensions)]
 
-export const loadImage = async ({ imagePath = null, arrayBuffer = null }) => {
+export const loadImage = async ({ imagePath = null, arrayBuffer = null, getImageDimensions = null }) => {
 	// Check to make sure some form of image has been provided
 	if (imagePath == null && arrayBuffer == null)
 		return { errors: ["No image provided"] }
@@ -45,12 +45,18 @@ export const loadImage = async ({ imagePath = null, arrayBuffer = null }) => {
 	try {
 		// Attempt to decode the image as a tiff
 		data = tiff.decode(arrayBuffer)
-	} catch (err) {
-		// Warn the user that their image is not a tiff
-		console.warn("The image provided is not a tiff")
+	} catch (err) { // Image is not a tiff
+		return { errors: ["An image provided is not a tiff. Currently this tool only accepts tiffs."] }
 
-		// Fall back to the original image data
-		data = createTiffPolyfill(arrayBuffer)
+		// // Warn the user that their image is not a tiff
+		// console.warn("The image provided is not a tiff")
+
+		// if(getImageDimensions == null) return {errors: ["Argument `getImageDimensions` not provided"]}
+
+		// const dimensions = await getImageDimensions()
+
+		// // Fall back to the original image data
+		// data = createTiffPolyfill(arrayBuffer, dimensions)
 	}
 
 	return { data }
