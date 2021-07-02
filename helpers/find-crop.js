@@ -86,12 +86,28 @@ const validateSourceAndCroppedImages = (sourceImage, crop) => {
 		errors.push("The cropped image provided is not defined")
 
 	// Make sure the source image is larger than the crop made from it
-	if (sourceImage.data.length < crop.data.length)
+	if (
+		sourceImage.data.length < crop.data.length ||
+		sourceImage.data[0].imageWidth < crop.data[0].imageWidth ||
+		sourceImage.data[0].imageLength < crop.data[0].imageLength
+	)
 		errors.push(
 			"The source image provided is smaller than the cropped image"
 		)
 
 	return errors
+}
+
+const calculateDimensionsForScanningKernel = (sourceImage, crop) => {
+	// Use the first layers of the images as samples
+	const sourceImageLayer = sourceImage.data[0]
+	const cropLayer = crop.data[0]
+
+	return [
+		sourceImageLayer.imageWidth,
+		cropLayer.imageWidth,
+		cropLayer.imageLength,
+	]
 }
 
 export const findCropInImage = (sourceImage, crop) => {
@@ -101,20 +117,25 @@ export const findCropInImage = (sourceImage, crop) => {
 
 	const scanningKernel = createScanningKernel(sourceImage, crop)
 
-	const sourceImageLayer = sourceImage.data[0]
-	const cropLayer = crop.data[0]
+	// Group the image dimensions together to bypass the argument limit of the gpu kernel
+	const dimensions = calculateDimensionsForScanningKernel(sourceImage, crop)
 
-	const dimensions = [
-		sourceImageLayer.imageWidth,
-		cropLayer.imageWidth,
-		cropLayer.imageLength,
-	]
+	const zAxisScans = Math.abs(sourceImage.data.length - crop.data.length)
 
-	const result = scanningKernel(
-		sourceImageLayer.data,
-		cropLayer.data,
-		dimensions
-	)
+	let result = []
+
+	const layersToSkip = 200
+
+	console.time("full-scan")
+	for (let layer = 0; layer <= zAxisScans; layer += layersToSkip) {
+		const sourceImageLayer = sourceImage.data[layer]
+		const cropLayer = crop.data[0]
+
+		result.push(
+			scanningKernel(sourceImageLayer.data, cropLayer.data, dimensions)
+		)
+	}
+	console.timeEnd("full-scan")
 
 	return { result }
 }

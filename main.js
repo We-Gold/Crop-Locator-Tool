@@ -5,6 +5,7 @@ import { findCropInImage } from "./helpers/find-crop"
 import { createImageUploadCallback } from "./helpers/input-upload-handler"
 import { handleErrors } from "./helpers/handle-errors"
 import { loadImage } from "./helpers/load-image"
+import { displayImage } from "./helpers/display-image"
 
 // Create places to store the images
 const images = {
@@ -12,16 +13,62 @@ const images = {
 	crop: null,
 }
 
+const showImages = () => {
+	// Display the source image
+	const sourceImage = images.sourceImage.data[350]
+	const sourceCanvas = document.querySelector("#source-image-canvas")
+
+	displayImage({
+		imageData: sourceImage.data,
+		width: sourceImage.imageWidth,
+		height: sourceImage.imageLength,
+		canvasElement: sourceCanvas,
+	})
+
+	// Display the crop
+	const crop = images.crop.data[0]
+	const cropCanvas = document.querySelector("#crop-image-canvas")
+
+	displayImage({
+		imageData: crop.data,
+		width: crop.imageWidth,
+		height: crop.imageLength,
+		canvasElement: cropCanvas,
+	})
+}
+
 const analyzeImages = () => {
 	console.log(images)
 
 	if (images.sourceImage == null || images.crop == null) return
+
+	showImages()
 
 	const { errors, result } = findCropInImage(images.sourceImage, images.crop)
 
 	handleErrors(errors)
 
 	console.log(result)
+
+	// Find the minimum value
+	let min = Infinity
+	let minIndex = []
+
+	console.time("find-min")
+    for(const [layerIndex, layer] of Object.entries(result)) {
+        for (const [arrIndex, array] of Object.entries(layer)) {
+            for (const [numIndex, number] of Object.entries(array)) {
+                if (number < min) {
+                    min = number
+                    minIndex = [layerIndex, arrIndex, numIndex]
+                }
+            }
+        }
+    }
+	console.timeEnd("find-min")
+
+	console.log(min)
+	console.log(minIndex)
 }
 
 // For testing purposes, auto load the default images
