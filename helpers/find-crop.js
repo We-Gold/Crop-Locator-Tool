@@ -110,7 +110,11 @@ const calculateDimensionsForScanningKernel = (sourceImage, crop) => {
 	]
 }
 
-export const findCropInImage = (sourceImage, crop) => {
+export const findCropInImage = (
+	sourceImage,
+	crop,
+	{ convolution = false } = {}
+) => {
 	const errors = validateSourceAndCroppedImages(sourceImage, crop)
 
 	if (errors.length > 0) return { errors }
@@ -124,7 +128,7 @@ export const findCropInImage = (sourceImage, crop) => {
 
 	let result = []
 
-	const layersToSkip = 200
+	const layersToSkip = 350
 
 	console.time("full-scan")
 	for (let layer = 0; layer <= zAxisScans; layer += layersToSkip) {

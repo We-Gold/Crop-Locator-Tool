@@ -5,7 +5,7 @@ import { findCropInImage } from "./helpers/find-crop"
 import { createImageUploadCallback } from "./helpers/input-upload-handler"
 import { handleErrors } from "./helpers/handle-errors"
 import { loadImage } from "./helpers/load-image"
-import { displayImage } from "./helpers/display-image"
+import { displayImage, overlayCrop } from "./helpers/display-image"
 
 // Create places to store the images
 const images = {
@@ -55,20 +55,33 @@ const analyzeImages = () => {
 	let minIndex = []
 
 	console.time("find-min")
-    for(const [layerIndex, layer] of Object.entries(result)) {
-        for (const [arrIndex, array] of Object.entries(layer)) {
-            for (const [numIndex, number] of Object.entries(array)) {
-                if (number < min) {
-                    min = number
-                    minIndex = [layerIndex, arrIndex, numIndex]
-                }
-            }
-        }
-    }
+	for (const [z, layer] of Object.entries(result)) {
+		for (const [y, array] of Object.entries(layer)) {
+			for (const [x, number] of Object.entries(array)) {
+				if (number < min) {
+					min = number
+					minIndex = [z, y, x]
+				}
+			}
+		}
+	}
 	console.timeEnd("find-min")
+
+	minIndex = minIndex.map((x) => parseInt(x))
 
 	console.log(min)
 	console.log(minIndex)
+
+	const sourceCanvas = document.querySelector("#source-image-canvas")
+
+	overlayCrop(
+		sourceCanvas,
+		{ x: minIndex[2], y: minIndex[1] },
+		{
+			w: images.crop.data[0].imageWidth,
+			h: images.crop.data[0].imageLength,
+		}
+	)
 }
 
 // For testing purposes, auto load the default images

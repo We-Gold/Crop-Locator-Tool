@@ -2,16 +2,17 @@ import { handleErrors } from "./handle-errors"
 import { loadImage } from "./load-image"
 
 /* From: https://stackoverflow.com/questions/7460272/getting-image-dimensions-using-javascript-file-api */
-const getHeightAndWidthFromDataUrl = dataURL => new Promise(resolve => {
-    const img = new Image()
-    img.onload = () => {
-      resolve({
-        imageHeight: img.height,
-        imageWidth: img.width
-      })
-    }
-    img.src = dataURL
-})
+const getHeightAndWidthFromDataUrl = (dataURL) =>
+	new Promise((resolve) => {
+		const img = new Image()
+		img.onload = () => {
+			resolve({
+				imageHeight: img.height,
+				imageWidth: img.width,
+			})
+		}
+		img.src = dataURL
+	})
 
 export const createImageUploadCallback = ({
 	errorHandler = handleErrors,
@@ -21,26 +22,29 @@ export const createImageUploadCallback = ({
 		// Store the file that was uploaded
 		const file = event.target.files[0]
 
-        const getImageDimensions = async () => {
-            // Convert the file to a data url
-            const dataURL = window.URL.createObjectURL(file)
+		const getImageDimensions = async () => {
+			// Convert the file to a data url
+			const dataURL = window.URL.createObjectURL(file)
 
-            // Extract the width and height from the image
-            const dimensions = await getHeightAndWidthFromDataUrl(dataURL)
+			// Extract the width and height from the image
+			const dimensions = await getHeightAndWidthFromDataUrl(dataURL)
 
-            return dimensions
-        }
+			return dimensions
+		}
 
-        // Extract the raw data from the file
-        const arrayBuffer = await file.arrayBuffer()
+		// Extract the raw data from the file
+		const arrayBuffer = await file.arrayBuffer()
 
 		// Attempt to load the file
-		const { data, errors } = await loadImage({ arrayBuffer, getImageDimensions })
+		const { data, errors } = await loadImage({
+			arrayBuffer,
+			getImageDimensions,
+		})
 		// Handle any errors that arise
 		errorHandler(errors)
 
-        if(data == null) return
+		if (data == null) return
 
-		callback({data})
+		callback({ data })
 	}
 }

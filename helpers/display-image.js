@@ -1,28 +1,56 @@
 import * as plotty from "plotty"
 
 const setCanvasDimensions = (canvasElement, canvasWidth, canvasHeight) => {
-    canvasElement.style.width = `${canvasWidth}px`
-    canvasElement.style.height = `${canvasHeight}px`
+	canvasElement.style.width = `${canvasWidth}px`
+	canvasElement.style.height = `${canvasHeight}px`
 }
 
-const resizeCanvas = ({canvasElement, canvasWidth = null, canvasHeight = null, width, height}) => {
-    if(canvasWidth == null && canvasHeight == null) return
+const resizeCanvas = ({
+	canvasElement,
+	canvasWidth = null,
+	canvasHeight = null,
+	width,
+	height,
+}) => {
+	if (canvasWidth == null && canvasHeight == null) return
 
-    // Calculate the image aspect ratio
-    const aspectRatio = width / height
+	// Calculate the image aspect ratio
+	const aspectRatio = width / height
 
-    // Fit the canvas size to the constraints
-    if(canvasWidth != null) {
-        const targetHeight = canvasWidth / aspectRatio
+	// Fit the canvas size to the constraints
+	if (canvasWidth != null) {
+		const targetHeight = canvasWidth / aspectRatio
 
-        setCanvasDimensions(canvasElement, canvasWidth, targetHeight)
+		setCanvasDimensions(canvasElement, canvasWidth, targetHeight)
 
-        return
-    }
+		return
+	}
 
-    const targetWidth = canvasWidth * aspectRatio
+	const targetWidth = canvasWidth * aspectRatio
 
-    setCanvasDimensions(canvasElement, targetWidth, canvasHeight)
+	setCanvasDimensions(canvasElement, targetWidth, canvasHeight)
+}
+
+export const overlayCrop = (
+	canvasElement,
+	position,
+    size,
+	{
+		strokeColor = "rgb(64, 196, 82)",
+		highlightColor = "rgba(64, 196, 82, 0.5)",
+	} = {}
+) => {
+    const ctx = canvasElement.getContext("2d")
+
+    ctx.fillStyle = highlightColor
+    ctx.strokeStyle = strokeColor
+
+    const {x, y} = position
+
+    const {w, h} = size
+
+    ctx.fillRect(x, y, w, h)
+    ctx.strokeRect(x, y, w, h)
 }
 
 export const displayImage = ({
@@ -30,12 +58,12 @@ export const displayImage = ({
 	width,
 	height,
 	canvasElement,
-    canvasWidth = null,
-    canvasHeight = null,
+	canvasWidth = null,
+	canvasHeight = null,
 	imageRange = [0, 255],
 	colorScale = "greys",
 }) => {
-    // Create a plotty plot for the given image
+	// Create a plotty plot for the given image
 	const plot = new plotty.plot({
 		canvas: canvasElement,
 		data: imageData,
@@ -43,13 +71,14 @@ export const displayImage = ({
 		height,
 		domain: imageRange,
 		colorScale,
+        useWebGL: false
 	})
 
-    // Resize the canvas to match the image
-    resizeCanvas({canvasElement, canvasWidth, canvasHeight, width, height})
+	// Resize the canvas to match the image
+	resizeCanvas({ canvasElement, canvasWidth, canvasHeight, width, height })
 
-    // Render the plot to the canvas
-    plot.render()
+	// Render the plot to the canvas
+	plot.render()
 
-    return plot
+	return plot
 }
