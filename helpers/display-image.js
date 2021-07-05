@@ -37,7 +37,7 @@ export const overlayCrop = (
     size,
 	{
 		strokeColor = "rgb(64, 196, 82)",
-		highlightColor = "rgba(64, 196, 82, 0.5)",
+		highlightColor = "rgba(64, 196, 82, 0.3)",
 	} = {}
 ) => {
     const ctx = canvasElement.getContext("2d")
