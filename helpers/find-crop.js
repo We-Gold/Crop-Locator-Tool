@@ -51,7 +51,7 @@ gpu.addFunction(function calculateAbsoluteDifferenceSum(
 	return sum
 })
 
-const createScanningKernel = (sourceImage, crop, useEveryXPixel = 5) => {
+const createScanningKernel = (sourceImage, crop, useEveryXPixel) => {
 	// Calculate the number of scans needed per axis
 	const xAxisScans = Math.trunc(
 		Math.abs(sourceImage.data[0].imageWidth - crop.data[0].imageWidth) /
@@ -72,6 +72,90 @@ const createScanningKernel = (sourceImage, crop, useEveryXPixel = 5) => {
 
 		const x = this.thread.x * useEveryXPixel,
 			y = this.thread.y * useEveryXPixel
+
+		return calculateAbsoluteDifferenceSum(
+			sourceImageLayer,
+			cropLayer,
+			x,
+			y,
+			sourceImageLayerWidth,
+			cropLayerWidth,
+			cropLayerLength,
+			useEveryXPixel
+		)
+	}
+
+	return gpu.createKernel(kernelFunction).setOutput([xAxisScans, yAxisScans])
+}
+
+const constrainNumber = (number, min, max) =>
+	Math.min(Math.max(number, min), max)
+
+const countScansNeededForFullCheck = (
+	sourceImage,
+	crop,
+	location,
+	useEveryXPixel,
+	useEveryXLayer
+) => {
+	const xAxisMax = Math.abs(
+		sourceImage.data[0].imageWidth - crop.data[0].imageWidth
+	)
+	const xScanStart = constrainNumber(location.x - useEveryXPixel, 0, xAxisMax)
+	const xScanEnd = constrainNumber(location.x + useEveryXPixel, 0, xAxisMax)
+	const xAxisScans = xScanEnd - xScanStart
+
+	const yAxisMax = Math.abs(
+		sourceImage.data[0].imageLength - crop.data[0].imageLength
+	)
+	const yScanStart = constrainNumber(location.y - useEveryXPixel, 0, yAxisMax)
+	const yScanEnd = constrainNumber(location.y + useEveryXPixel, 0, yAxisMax)
+	const yAxisScans = yScanEnd - yScanStart
+
+	const zAxisMax = Math.abs(sourceImage.data.length - crop.data.length)
+	const zScanStart = constrainNumber(location.z - useEveryXLayer, 0, zAxisMax)
+	const zScanEnd = constrainNumber(location.z + useEveryXLayer, 0, zAxisMax)
+	const zAxisScans = zScanEnd - zScanStart
+
+	return {
+		xScanStart,
+		xAxisScans,
+		yScanStart,
+		yAxisScans,
+		zScanStart,
+		zAxisScans,
+	}
+}
+
+const createConfirmingKernel = (
+	sourceImage,
+	crop,
+	location,
+	useEveryXPixel,
+	useEveryXLayer
+) => {
+	const { xAxisScans, yAxisScans } = countScansNeededForFullCheck(
+		sourceImage,
+		crop,
+		location,
+		useEveryXPixel,
+		useEveryXLayer
+	)
+
+	const kernelFunction = function (sourceImageLayer, cropLayer, dimensions) {
+		const [
+			sourceImageLayerWidth,
+			cropLayerWidth,
+			cropLayerLength,
+			_,
+			originX,
+			originY,
+		] = dimensions
+
+		const x = this.thread.x + originX,
+			y = this.thread.y + originY
+
+		const useEveryXPixel = 1
 
 		return calculateAbsoluteDifferenceSum(
 			sourceImageLayer,
@@ -113,7 +197,9 @@ const validateSourceAndCroppedImages = (sourceImage, crop) => {
 const calculateDimensionsForScanningKernel = (
 	sourceImage,
 	crop,
-	useEveryXPixel
+	useEveryXPixel,
+	originX = 0,
+	originY = 0
 ) => {
 	// Use the first layers of the images as samples
 	const sourceImageLayer = sourceImage.data[0]
@@ -124,18 +210,16 @@ const calculateDimensionsForScanningKernel = (
 		cropLayer.imageWidth,
 		cropLayer.imageLength,
 		useEveryXPixel,
+		originX,
+		originY,
 	]
 }
 
-export const findCropInImage = (
+const runOptimizedScan = (
 	sourceImage,
 	crop,
-	{ useEveryXLayers = 50, useEveryXPixel = 1 } = {}
+	{ useEveryXLayer = 50, useEveryXPixel = 5 } = {}
 ) => {
-	const errors = validateSourceAndCroppedImages(sourceImage, crop)
-
-	if (errors.length > 0) return { errors }
-
 	const scanningKernel = createScanningKernel(
 		sourceImage,
 		crop,
@@ -153,8 +237,8 @@ export const findCropInImage = (
 
 	let result = []
 
-	console.time("full-scan")
-	for (let layer = 0; layer <= zAxisScans; layer += useEveryXLayers) {
+	console.time("optimized-scan")
+	for (let layer = 0; layer <= zAxisScans; layer += useEveryXLayer) {
 		const sourceImageLayer = sourceImage.data[layer]
 		const cropLayer = crop.data[0]
 
@@ -162,12 +246,68 @@ export const findCropInImage = (
 			scanningKernel(sourceImageLayer.data, cropLayer.data, dimensions)
 		)
 	}
-	console.timeEnd("full-scan")
+	console.timeEnd("optimized-scan")
 
-	return { result }
+	return result
 }
 
-export const calculateCropMatchThreshold = ({
+const confirmMatches = (
+	sourceImage,
+	crop,
+	positions,
+	{ useEveryXLayer = 50, useEveryXPixel = 5 } = {}
+) => {
+	const adjustedXPixel = Math.trunc(useEveryXPixel/2)
+	const adjustedXLayer = Math.trunc(useEveryXLayer/2)
+
+	const kernels = positions.map((location) =>
+		createConfirmingKernel(
+			sourceImage,
+			crop,
+			location,
+			adjustedXPixel,
+			adjustedXLayer
+		)
+	)
+
+	console.time("match-scan")
+	const matchesToBeScanned = kernels.map((kernel, index) => {
+		const { zScanStart, zAxisScans, xScanStart, yScanStart } = countScansNeededForFullCheck(
+			sourceImage,
+			crop,
+			positions[index],
+			adjustedXPixel,
+			adjustedXLayer
+		)
+
+		// Group the image dimensions together to bypass the argument limit of the gpu kernel
+		const dimensions = calculateDimensionsForScanningKernel(
+			sourceImage,
+			crop,
+			useEveryXPixel,
+			xScanStart,
+			yScanStart
+		)
+
+		let result = []
+
+		for (let layer = zScanStart; layer <= zScanStart + zAxisScans; layer += 1) {
+			const sourceImageLayer = sourceImage.data[layer]
+			const cropLayer = crop.data[0]
+
+			result.push(
+				kernel(sourceImageLayer.data, cropLayer.data, dimensions)
+			)
+		}
+
+		return result
+	})
+	console.timeEnd("match-scan")
+
+	return matchesToBeScanned
+}
+
+const calculateCropMatchThreshold = ({
 	threshold = 0.1,
 	cropWidth,
 	cropHeight,
@@ -180,4 +320,83 @@ export const calculateCropMatchThreshold = ({
 	)
 
 	return threshold * maxDifference * totalPixels
+}
+
+const findAllCloseMatches = ({
+	result,
+	crop,
+	useEveryXPixel,
+	useEveryXLayer,
+	threshold = 0.1,
+}) => {
+	const cropMatchThreshold = calculateCropMatchThreshold({
+		threshold,
+		cropWidth: crop.data[0].imageWidth,
+		cropHeight: crop.data[0].imageLength,
+		useEveryXPixel,
+		useEveryXLayer,
+	})
+
+	const relativeMatches = []
+
+	console.time("threshold")
+	for (const [z, layer] of Object.entries(result)) {
+		for (const [y, array] of Object.entries(layer)) {
+			for (const [x, number] of Object.entries(array)) {
+				if (number < cropMatchThreshold) {
+					const index = [z, y, x].map((n) => parseInt(n))
+
+					relativeMatches.push({ difference: number, index })
+				}
+			}
+		}
+	}
+	console.timeEnd("threshold")
+
+	if (relativeMatches.length == 0)
+		return console.log("This crop is not from the image!")
+
+	const positions = relativeMatches.map((match) => {
+		const index = match.index
+
+		return {
+			x: index[2] * useEveryXPixel,
+			y: index[1] * useEveryXPixel,
+			z: index[0] * useEveryXLayer,
+		}
+	})
+
+	console.log(positions)
+
+	return positions
+}
+
+export const findCropInImage = (
+	sourceImage,
+	crop,
+	{ useEveryXLayer = 50, useEveryXPixel = 5 } = {}
+) => {
+	const errors = validateSourceAndCroppedImages(sourceImage, crop)
+
+	if (errors.length > 0) return { errors }
+
+	const result = runOptimizedScan(sourceImage, crop, {
+		useEveryXLayer,
+		useEveryXPixel,
+	})
+
+	const positions = findAllCloseMatches({
+		result,
+		crop,
+		useEveryXPixel,
+		useEveryXLayer,
+		threshold: 0.1,
+	})
+
+	const matches = confirmMatches(sourceImage, crop, positions, {
+		useEveryXPixel,
+		useEveryXLayer,
+	})
+
+	return { result, positions, matches }
 }

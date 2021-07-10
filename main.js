@@ -1,10 +1,7 @@
 // Import the css
 import "./style.css"
 
-import {
-	findCropInImage,
-	calculateCropMatchThreshold,
-} from "./helpers/find-crop"
+import { findCropInImage } from "./helpers/find-crop"
 import { createImageUploadCallback } from "./helpers/input-upload-handler"
 import { handleErrors } from "./helpers/handle-errors"
 import { loadImage } from "./helpers/load-image"
@@ -39,7 +36,7 @@ const analyzeImages = () => {
 	const useEveryXPixel = 5
 	const useEveryXLayer = 50
 
-	const { errors, result } = findCropInImage(
+	const { errors, result, positions, matches } = findCropInImage(
 		images.sourceImage,
 		images.crop,
 		{ useEveryXPixel, useEveryXLayer }
@@ -49,47 +46,9 @@ const analyzeImages = () => {
 
 	console.log(result)
 
-	// Calculate the threshold for a crop to be a relative match
-	const cropMatchThreshold = calculateCropMatchThreshold({
-		threshold: 0.1,
-		cropWidth: images.crop.data[0].imageWidth,
-		cropHeight: images.crop.data[0].imageLength,
-		useEveryXPixel,
-		useEveryXLayer
-	})
+	console.log(matches)
 
-	const relativeMatches = []
-
-	console.time("find-min")
-	for (const [z, layer] of Object.entries(result)) {
-		for (const [y, array] of Object.entries(layer)) {
-			for (const [x, number] of Object.entries(array)) {
-				if(number < cropMatchThreshold) {
-					const index = [z, y, x].map((n) => parseInt(n))
-
-					relativeMatches.push({difference: number, index})
-				}
-			}
-		}
-	}
-	console.timeEnd("find-min")
-
-	console.log(relativeMatches)
-
-	if(relativeMatches.length == 0) return console.log("This crop is not from the image!")
-
-	const minIndex = relativeMatches[0].index
-	const min = relativeMatches[0].difference
-
-	const position = {
-		x: minIndex[2] * useEveryXPixel,
-		y: minIndex[1] * useEveryXPixel,
-		z: minIndex[0] * useEveryXLayer,
-	}
-
-	console.log(min)
-	console.log(minIndex)
-	console.log(position)
+	const position = positions[0]
 
 	const sourceCanvas = document.querySelector("#source-image-canvas")
 	const sourceImage = images.sourceImage.data[position.z]
@@ -127,8 +86,6 @@ const useDefaultImages = async () => {
 	analyzeImages()
 }
 
-useDefaultImages()
-
 const sourceImageUploadHandler = createImageUploadCallback({
 	callback: (image) => {
 		images.sourceImage = image
@@ -152,3 +109,7 @@ document
 document
 	.querySelector("#crop-image-input")
 	.addEventListener("change", cropImageUploadHandler)
+
+document
+	.querySelector("#default-images-button")
+	.addEventListener("click", useDefaultImages)
