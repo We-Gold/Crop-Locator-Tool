@@ -2,6 +2,82 @@ import { GPU } from "gpu.js"
 
 const gpu = new GPU({ mode: "gpu" })
 
+const testCropDifference = (sourceImage, crop) => {
+	function getImageDataIndex(x, y, width) {
+		return x + width * y
+	}
+
+	function calculateAbsoluteDifferenceSum(
+		sourceImageLayer,
+		cropLayer,
+		sourceX,
+		sourceY,
+		sourceImageLayerWidth,
+		cropLayerWidth,
+		cropLayerLength,
+		useEveryXPixel
+	) {
+		let sum = 0
+
+		for (
+			let x = sourceX;
+			x < sourceX + cropLayerWidth;
+			x += useEveryXPixel
+		) {
+			for (
+				let y = sourceY;
+				y < sourceY + cropLayerLength;
+				y += useEveryXPixel
+			) {
+				const sourceImageLayerIndex = getImageDataIndex(
+					x,
+					y,
+					sourceImageLayerWidth
+				)
+				const cropLayerIndex = getImageDataIndex(
+					x - sourceX,
+					y - sourceY,
+					cropLayerWidth
+				)
+
+				const sourceImageLayerPixel =
+					sourceImageLayer[sourceImageLayerIndex]
+				const cropLayerPixel = cropLayer[cropLayerIndex]
+
+				const pixelDifference = Math.abs(
+					sourceImageLayerPixel - cropLayerPixel
+				)
+
+				sum += pixelDifference
+			}
+		}
+
+		return sum
+	}
+
+	const sourceImageLayer = sourceImage.data[349].data
+	const cropImageLayer = crop.data[0].data
+
+	console.log(cropImageLayer.slice(0, 300))
+	console.log(
+		sourceImageLayer.slice(
+			getImageDataIndex(200, 250, 800),
+			getImageDataIndex(200 + 300, 250, 800)
+		)
+	)
+
+	return calculateAbsoluteDifferenceSum(
+		sourceImageLayer,
+		cropImageLayer,
+		200,
+		250,
+		800,
+		300,
+		300,
+		1
+	)
+}
+
 // Gets the index for the requested position in a given image
 gpu.addFunction(function getImageDataIndex(x, y, width) {
 	return x + width * y
@@ -19,10 +95,10 @@ gpu.addFunction(function calculateAbsoluteDifferenceSum(
 ) {
 	let sum = 0
 
-	for (let x = sourceX; x <= sourceX + cropLayerWidth; x += useEveryXPixel) {
+	for (let x = sourceX; x < sourceX + cropLayerWidth; x += useEveryXPixel) {
 		for (
 			let y = sourceY;
-			y <= sourceY + cropLayerLength;
+			y < sourceY + cropLayerLength;
 			y += useEveryXPixel
 		) {
 			const sourceImageLayerIndex = getImageDataIndex(
@@ -95,9 +171,10 @@ const countScansNeededForFullCheck = (
 	sourceImage,
 	crop,
 	location,
-	useEveryXPixel,
-	useEveryXLayer
+	convertPosition
 ) => {
+	const { useEveryXPixel, useEveryXLayer } = convertPosition()
+
 	const xAxisMax = Math.abs(
 		sourceImage.data[0].imageWidth - crop.data[0].imageWidth
 	)
@@ -131,15 +208,13 @@ const createConfirmingKernel = (
 	sourceImage,
 	crop,
 	location,
-	useEveryXPixel,
-	useEveryXLayer
+	convertPosition
 ) => {
 	const { xAxisScans, yAxisScans } = countScansNeededForFullCheck(
 		sourceImage,
 		crop,
 		location,
-		useEveryXPixel,
-		useEveryXLayer
+		convertPosition
 	)
 
 	const kernelFunction = function (sourceImageLayer, cropLayer, dimensions) {
@@ -147,15 +222,13 @@ const createConfirmingKernel = (
 			sourceImageLayerWidth,
 			cropLayerWidth,
 			cropLayerLength,
-			_,
+			useEveryXPixel,
 			originX,
 			originY,
 		] = dimensions
 
 		const x = this.thread.x + originX,
 			y = this.thread.y + originY
-
-		const useEveryXPixel = 1
 
 		return calculateAbsoluteDifferenceSum(
 			sourceImageLayer,
@@ -218,7 +291,7 @@ const calculateDimensionsForScanningKernel = (
 const runOptimizedScan = (
 	sourceImage,
 	crop,
-	{ useEveryXLayer = 50, useEveryXPixel = 5 } = {}
+	{ useEveryXLayer, useEveryXPixel }
 ) => {
 	const scanningKernel = createScanningKernel(
 		sourceImage,
@@ -237,7 +310,6 @@ const runOptimizedScan = (
 
 	let result = []
 
-	console.time("optimized-scan")
 	for (let layer = 0; layer <= zAxisScans; layer += useEveryXLayer) {
 		const sourceImageLayer = sourceImage.data[layer]
 		const cropLayer = crop.data[0]
@@ -246,39 +318,39 @@ const runOptimizedScan = (
 			scanningKernel(sourceImageLayer.data, cropLayer.data, dimensions)
 		)
 	}
-	console.timeEnd("optimized-scan")
 
-	return result
+	const convertPosition = (coordinate = null) => {
+		if (coordinate == null) return { useEveryXPixel, useEveryXLayer }
+
+		return {
+			x: coordinate.x * useEveryXPixel,
+			y: coordinate.y * useEveryXPixel,
+			z: coordinate.z * useEveryXLayer,
+		}
+	}
+
+	return [result, convertPosition]
 }
 
 const confirmMatches = (
 	sourceImage,
 	crop,
 	positions,
-	{ useEveryXLayer = 50, useEveryXPixel = 5 } = {}
+	convertPosition,
+	{ useEveryXLayer, useEveryXPixel }
 ) => {
-	const adjustedXPixel = Math.trunc(useEveryXPixel/2)
-	const adjustedXLayer = Math.trunc(useEveryXLayer/2)
-
 	const kernels = positions.map((location) =>
-		createConfirmingKernel(
-			sourceImage,
-			crop,
-			location,
-			adjustedXPixel,
-			adjustedXLayer
-		)
+		createConfirmingKernel(sourceImage, crop, location, convertPosition)
 	)
 
-	console.time("match-scan")
 	const matchesToBeScanned = kernels.map((kernel, index) => {
-		const { zScanStart, zAxisScans, xScanStart, yScanStart } = countScansNeededForFullCheck(
-			sourceImage,
-			crop,
-			positions[index],
-			adjustedXPixel,
-			adjustedXLayer
-		)
+		const { zScanStart, zAxisScans, xScanStart, yScanStart } =
+			countScansNeededForFullCheck(
+				sourceImage,
+				crop,
+				positions[index],
+				convertPosition
+			)
 
 		// Group the image dimensions together to bypass the argument limit of the gpu kernel
 		const dimensions = calculateDimensionsForScanningKernel(
@@ -291,7 +363,11 @@ const confirmMatches = (
 
 		let result = []
 
-		for (let layer = zScanStart; layer <= zScanStart + zAxisScans; layer += 1) {
+		for (
+			let layer = zScanStart;
+			layer <= zScanStart + zAxisScans;
+			layer += useEveryXLayer
+		) {
 			const sourceImageLayer = sourceImage.data[layer]
 			const cropLayer = crop.data[0]
 
@@ -302,9 +378,25 @@ const confirmMatches = (
 
 		return result
 	})
-	console.timeEnd("match-scan")
 
-	return matchesToBeScanned
+	const { zScanStart, xScanStart, yScanStart } = countScansNeededForFullCheck(
+		sourceImage,
+		crop,
+		positions[0],
+		convertPosition
+	)
+
+	const convertMatchPosition = (coordinate = null) => {
+		if (coordinate == null) return { useEveryXPixel, useEveryXLayer }
+
+		return {
+			x: coordinate.x * useEveryXPixel + xScanStart,
+			y: coordinate.y * useEveryXPixel + yScanStart,
+			z: coordinate.z * useEveryXLayer + zScanStart,
+		}
+	}
+
+	return [matchesToBeScanned, convertMatchPosition]
 }
 
 const calculateCropMatchThreshold = ({
@@ -325,10 +417,11 @@ const calculateCropMatchThreshold = ({
 const findAllCloseMatches = ({
 	result,
 	crop,
-	useEveryXPixel,
-	useEveryXLayer,
+	convertPosition,
 	threshold = 0.1,
 }) => {
+	const { useEveryXPixel, useEveryXLayer } = convertPosition()
+
 	const cropMatchThreshold = calculateCropMatchThreshold({
 		threshold,
 		cropWidth: crop.data[0].imageWidth,
@@ -339,7 +432,6 @@ const findAllCloseMatches = ({
 
 	const relativeMatches = []
 
-	console.time("threshold")
 	for (const [z, layer] of Object.entries(result)) {
 		for (const [y, array] of Object.entries(layer)) {
 			for (const [x, number] of Object.entries(array)) {
@@ -351,52 +443,157 @@ const findAllCloseMatches = ({
 			}
 		}
 	}
-	console.timeEnd("threshold")
 
-	if (relativeMatches.length == 0)
-		return console.log("This crop is not from the image!")
+	if (relativeMatches.length == 0) return null
 
 	const positions = relativeMatches.map((match) => {
 		const index = match.index
 
-		return {
-			x: index[2] * useEveryXPixel,
-			y: index[1] * useEveryXPixel,
-			z: index[0] * useEveryXLayer,
-		}
+		return Object.assign(
+			convertPosition({ x: index[2], y: index[1], z: index[0] }),
+			{ difference: match.difference }
+		)
 	})
-
-	console.log(positions)
 
 	return positions
 }
 
-export const findCropInImage = (
+const flatten = (array) => {
+	return array.reduce((a, b) => a.concat(b), [])
+}
+
+const optimizedScan = (
 	sourceImage,
 	crop,
-	{ useEveryXLayer = 50, useEveryXPixel = 5 } = {}
+	{ useEveryXPixel, useEveryXLayer, threshold }
 ) => {
-	const errors = validateSourceAndCroppedImages(sourceImage, crop)
-
-	if (errors.length > 0) return { errors }
-
-	const result = runOptimizedScan(sourceImage, crop, {
-		useEveryXLayer,
+	const [result, convertPosition] = runOptimizedScan(sourceImage, crop, {
 		useEveryXPixel,
+		useEveryXLayer,
 	})
 
 	const positions = findAllCloseMatches({
 		result,
 		crop,
-		useEveryXPixel,
-		useEveryXLayer,
-		threshold: 0.1,
+		convertPosition,
+		threshold,
 	})
 
-	const matches = confirmMatches(sourceImage, crop, positions, {
-		useEveryXPixel,
-		useEveryXLayer,
-	})
+	return [positions, convertPosition, result]
+}
 
-	return { result, positions, matches }
+const matchesScan = (
+	sourceImage,
+	crop,
+	positions,
+	convertPosition,
+	{ useEveryXPixel, useEveryXLayer, threshold }
+) => {
+	const [matches, _convertPosition] = confirmMatches(
+		sourceImage,
+		crop,
+		positions,
+		convertPosition,
+		{
+			useEveryXPixel,
+			useEveryXLayer,
+		}
+	)
+
+	const matchPositions = flatten(
+		matches.map((match) => {
+			return findAllCloseMatches({
+				result: match,
+				crop,
+				convertPosition: _convertPosition,
+				threshold,
+			})
+		})
+	)
+
+	return [matchPositions, _convertPosition, matches]
+}
+
+// Determine the best candiate for a match
+const determineBestCandidate = (positions) => {
+	// Find the position with the smallest difference
+	// and return that position
+	return positions.reduce(
+		(best, candidate) => {
+			// Ignore the candidate if it is null
+			if (candidate == null) return best
+
+			if (candidate.difference < best.difference) {
+				return candidate
+			}
+
+			return best
+		},
+		{ difference: Number.MAX_VALUE }
+	)
+}
+
+const runPipeline = (sourceImage, crop, layersConfig) => {
+	// Loop through all the layers in layersConfig
+	// For the first layer, we run an optimized scan, and feed the result to the next layer
+	// For all following layers, we run a match scan, and feed the result to the next layer
+	// The result of the last layer is the final result
+	const pipeline = []
+
+	for (const [i, layerConfig] of layersConfig.entries()) {
+		const { useEveryXPixel, useEveryXLayer, threshold } = layerConfig
+
+		if (i === 0) {
+			const [positions, convertPosition, result] = optimizedScan(
+				sourceImage,
+				crop,
+				{ useEveryXPixel, useEveryXLayer, threshold }
+			)
+
+			pipeline.push([positions, convertPosition, result])
+
+			continue
+		}
+
+		// Check to make sure the previous scan found a match
+		if (pipeline[i - 1][0] == null) return { errors: ['No match found'] }
+
+		const positions = [determineBestCandidate(pipeline[i - 1][0])]
+
+		const [matchPositions, convertPosition, matches] = matchesScan(
+			sourceImage,
+			crop,
+			positions,
+			pipeline[i - 1][1],
+			{ useEveryXPixel, useEveryXLayer, threshold }
+		)
+
+		pipeline.push([matchPositions, convertPosition, matches])
+	}
+
+	return {
+		pipeline,
+		positions: pipeline[pipeline.length - 1],
+		bestPosition: determineBestCandidate(pipeline[pipeline.length - 1][0]),
+	}
+}
+
+export const findCropInImage = (sourceImage, crop) => {
+	const errors = validateSourceAndCroppedImages(sourceImage, crop)
+
+	if (errors.length > 0) return { errors }
+
+	console.time("pipeline")
+	const { errors: pipelineErrors, pipeline, positions, bestPosition } = runPipeline(
+		sourceImage,
+		crop,
+		[
+			{ useEveryXPixel: 5, useEveryXLayer: 50, threshold: 0.1 },
+			{ useEveryXPixel: 1, useEveryXLayer: 5, threshold: 0.06 },
+			{ useEveryXPixel: 1, useEveryXLayer: 1, threshold: 0.01 },
+		]
+	)
+	console.timeEnd("pipeline")
+
+	return { errors: pipelineErrors, pipeline, positions, bestPosition }
 }

@@ -33,30 +33,39 @@ const analyzeImages = () => {
 
 	showImages()
 
-	const useEveryXPixel = 5
-	const useEveryXLayer = 50
-
-	const { errors, result, positions, matches } = findCropInImage(
+	const { errors, pipeline, positions, bestPosition } = findCropInImage(
 		images.sourceImage,
-		images.crop,
-		{ useEveryXPixel, useEveryXLayer }
+		images.crop
 	)
 
 	handleErrors(errors)
 
-	console.log(result)
-
-	console.log(matches)
-
-	const position = positions[0]
-
 	const sourceCanvas = document.querySelector("#source-image-canvas")
-	const sourceImage = images.sourceImage.data[position.z]
+
+	const sourceImage = images.sourceImage.data[0]
 
 	displayImage({
 		imageData: sourceImage.data,
 		width: sourceImage.imageWidth,
 		height: sourceImage.imageLength,
+		canvasElement: sourceCanvas,
+	})
+
+	// Don't show the overlay if the crop is not from the source image
+	if (errors != undefined && errors.length > 0) return
+
+	const position = {
+		x: bestPosition.x,
+		y: bestPosition.y,
+		z: bestPosition.z + 1,
+	}
+
+	const sourceImageLayer = images.sourceImage.data[position.z]
+
+	displayImage({
+		imageData: sourceImageLayer.data,
+		width: sourceImageLayer.imageWidth,
+		height: sourceImageLayer.imageLength,
 		canvasElement: sourceCanvas,
 	})
 
