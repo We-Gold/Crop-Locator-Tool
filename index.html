@@ -1,24 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./assets/favicon.4e235f70.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Crop Locator Tool</title>
-  <script type="module" crossorigin src="./assets/index.94cf835d.js"></script>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.4e235f70.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crop Locator Tool</title>
+<script type="module" crossorigin src="./assets/index.42a01d4d.js"></script>
   <link rel="modulepreload" href="./assets/vendor.6053f2ee.js">
+  <link rel="stylesheet" href="./assets/index.676eed67.css">
 </head>
-  <body>
-    <div>
-      <input type="file" id="source-image-input">
-      <input type="file" id="crop-image-input">
 
-      <button id="default-images-button">Use Default Images</button>
+<body>
+  <h1 id="title-text">Crop Locator Tool</h1>
+  <div id="main-area">
+    <div id="form-area">
+      <div class="form-column">
+        <label for="source-image-input">Select the original image</label>
+        <input type="file" id="source-image-input" class="upload">
+      </div>
+      <div class="form-column">
+        <label for="crop-image-input">Select the crop to locate</label>
+        <input type="file" id="crop-image-input" class="upload">
+      </div>
     </div>
-    
-    <canvas id="source-image-canvas"></canvas>
-    <canvas id="crop-image-canvas"></canvas>
+    <hr>
 
-    
-  </body>
+    <div id="results-area">
+      <canvas id="source-image-canvas"></canvas>
+      <div id="info-area">
+        <p id="crop-info"></p>
+        <hr>
+        <canvas id="crop-canvas"></canvas>
+        <hr>
+        <div class="form-column">
+          <label for="new-crop-input">Replace the crop</label>
+          <input type="file" id="new-crop-input" class="upload">
+        </div>
+        <canvas id="replaced-crop-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  
+</body>
+
 </html>
