@@ -516,6 +516,8 @@ export const findCropInImage = (sourceImage, crop, isRotated = false) => {
 
 	if (errors.length > 0) return { errors }
 
+	// TODO modify the pipeline for rotated images
+
 	console.time("pipeline")
 	const {
 		errors: pipelineErrors,

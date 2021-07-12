@@ -18,22 +18,10 @@ const images = {
 	crop: null,
 }
 
-const showCrop = (image) => {
-	const crop = image.data[0]
-	const canvas = document.querySelector("#crop-image-canvas")
-
-	displayImage({
-		imageData: crop.data,
-		width: crop.imageWidth,
-		height: crop.imageLength,
-		canvasElement: canvas,
-	})
-}
-
 const analyzeImages = () => {
-	console.log(images)
-
 	if (images.sourceImage == null || images.crop == null) return
+
+	console.log(images)
 
 	const { isRotated, angle } = isImageRotated(images.crop)
 
@@ -50,13 +38,13 @@ const analyzeImages = () => {
 
 		images.crop = {
 			data: image,
-			dimensions: { width: crop.imageWidth, height: crop.imageLength },
+			dimensions: images.crop.dimensions,
+			angle,
+			isRotated,
 		}
 	}
 
-	showCrop(images.crop)
-
-	const { errors, pipeline, positions, bestPosition } = findCropInImage(
+	const { errors, bestPosition } = findCropInImage(
 		images.sourceImage,
 		images.crop,
 		isRotated
@@ -83,6 +71,8 @@ const analyzeImages = () => {
 		y: bestPosition.y,
 		z: bestPosition.z + 1,
 	}
+
+	images.crop.position = position
 
 	const sourceImageLayer = images.sourceImage.data[position.z]
 
@@ -114,33 +104,37 @@ const analyzeImages = () => {
 			h: height,
 		})
 
-		return
+	} else {
+		overlayCrop(sourceCanvas, position, {
+			w: images.crop.data[0].imageWidth,
+			h: images.crop.data[0].imageLength,
+		})
 	}
 
-	overlayCrop(sourceCanvas, position, {
-		w: images.crop.data[0].imageWidth,
-		h: images.crop.data[0].imageLength,
-	})
+	outputResults()
 }
 
-// For testing purposes, auto load the default images
-const useDefaultImages = async () => {
-	const { data: sourceImage, errors: errors1 } = await loadImage({
-		imagePath: "/samples/5dpf_1_8bit.tif",
-	})
-	const { data: crop, errors: errors2 } = await loadImage({
-		imagePath:
-			"/samples/Training Crops/5dpf_1_8bit_x_200-500_y_250-550_z_350-650_Rotated_30deg.tif",
-	})
+const outputResults = () => {
+	const info = {
+		x: `${images.crop.position.x}-${
+			images.crop.position.x + images.crop.dimensions.width
+		}`,
+		y: `${images.crop.position.y}-${
+			images.crop.position.y + images.crop.dimensions.height
+		}`,
+		z: `${images.crop.position.z}-${
+			images.crop.position.z + images.crop.data.length
+		}`,
+		angle: images.crop.isRotated != null ? `${Math.round(images.crop.angle)}` : "",
+	}
 
-	// Handle any errors that arise
-	handleErrors(errors1)
-	handleErrors(errors2)
+	const resultHTML = `Crop Position: <br> x - ${info.x}, y - ${info.y}, z - ${
+		info.z
+	} ${images.crop.isRotated != null ? `<br> Rotated - ${info.angle}°` : ""}`
 
-	images.sourceImage = { data: sourceImage }
-	images.crop = { data: crop }
+	const cropInfo = document.querySelector("#crop-info")
 
-	analyzeImages()
+	cropInfo.innerHTML = resultHTML
 }
 
 const sourceImageUploadHandler = createImageUploadCallback({
@@ -166,7 +160,3 @@ document
 document
 	.querySelector("#crop-image-input")
 	.addEventListener("change", cropImageUploadHandler)
-
-document
-	.querySelector("#default-images-button")
-	.addEventListener("click", useDefaultImages)

@@ -1,0 +1,105 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    background-color: #333;
+    color: white;
+}
+
+#title-text {
+    margin-top: 1rem;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 3.5rem;
+    text-align: center;
+}
+
+#main-area {
+    margin-top: 1.5rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: clamp(50vw, 700px, 80vw);
+    border-radius: 1.5rem;
+    background-color: #66ad6f;
+    padding: 1rem;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#source-image-canvas {
+    width: 100%;
+}
+
+#results-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+}
+
+#info-area {
+    padding: 0.5rem 1rem;
+}
+
+@media (max-width: 450px) {
+    #results-area {
+        grid-template-columns: 1fr;
+    }
+}
+
+#crop-info {
+    margin: 0;
+}
+
+hr {
+    margin-top: 0.8rem;
+    margin-bottom: 0.8rem;
+    border: 1px solid rgba(20, 20, 20, 0.1)
+}
+
+#form-area {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-evenly;
+}
+
+@media (max-width: 540px) {
+    #form-area {
+        display: flex;
+        gap: 1rem;
+        flex-direction: column;
+        justify-content: space-evenly;
+    }
+}
+
+.form-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+}
+
+.upload::-webkit-file-upload-button {
+    display: none;
+}
+
+.upload::before {
+    content: 'Choose file';
+    display: inline-block;
+    background-color: rgb(49, 49, 49);
+    border: none;
+    border-radius: 3px;
+    padding: 5px 8px;
+    outline: none;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.8rem;
+    margin-right: 0.3rem;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.upload:hover::before {
+    border-color: black;
+}
+
+.upload:active::before {
+    background: rgb(19, 19, 19);
+}
