@@ -484,7 +484,12 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 		}
 
 		// Check to make sure the previous scan found a match
-		if (pipeline[i - 1][0] == null) return { errors: ["No match found"] }
+		if (pipeline[i - 1][0] == null || pipeline[i - 1][0].length === 0)
+			return { errors: ["No match found"] }
+
+		// Check to make sure the elements of the positions from the previous scan are not null
+		if (!pipeline[i - 1][0].some((p) => p != null))
+			return { errors: ["No match found"] }
 
 		const positions = [determineBestCandidate(pipeline[i - 1][0])]
 
@@ -523,7 +528,7 @@ export const findCropInImage = (sourceImage, crop, isRotated = false) => {
 		{
 			useEveryXPixel: 1,
 			useEveryXLayer: 1,
-			threshold: isRotated ? 0.05 : 0.01,
+			threshold: isRotated ? 0.03 : 0.01,
 		},
 	])
 	console.timeEnd("pipeline")
