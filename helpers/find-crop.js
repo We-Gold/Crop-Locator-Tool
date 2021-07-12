@@ -3,11 +3,13 @@ import { GPU } from "gpu.js"
 const gpu = new GPU({ mode: "gpu" })
 
 // Gets the index for the requested position in a given image
-gpu.addFunction(function getImageDataIndex(x, y, width) {
+function getImageDataIndex(x, y, width) {
 	return x + width * y
-})
+}
 
-gpu.addFunction(function calculateAbsoluteDifferenceSum(
+gpu.addFunction(getImageDataIndex)
+
+function calculateAbsoluteDifferenceSum(
 	sourceImageLayer,
 	cropLayer,
 	sourceX,
@@ -49,7 +51,9 @@ gpu.addFunction(function calculateAbsoluteDifferenceSum(
 	}
 
 	return sum
-})
+}
+
+gpu.addFunction(calculateAbsoluteDifferenceSum)
 
 const createScanningKernel = (sourceImage, crop, useEveryXPixel) => {
 	// Calculate the number of scans needed per axis
