@@ -2,82 +2,6 @@ import { GPU } from "gpu.js"
 
 const gpu = new GPU({ mode: "gpu" })
 
-const testCropDifference = (sourceImage, crop) => {
-	function getImageDataIndex(x, y, width) {
-		return x + width * y
-	}
-
-	function calculateAbsoluteDifferenceSum(
-		sourceImageLayer,
-		cropLayer,
-		sourceX,
-		sourceY,
-		sourceImageLayerWidth,
-		cropLayerWidth,
-		cropLayerLength,
-		useEveryXPixel
-	) {
-		let sum = 0
-
-		for (
-			let x = sourceX;
-			x < sourceX + cropLayerWidth;
-			x += useEveryXPixel
-		) {
-			for (
-				let y = sourceY;
-				y < sourceY + cropLayerLength;
-				y += useEveryXPixel
-			) {
-				const sourceImageLayerIndex = getImageDataIndex(
-					x,
-					y,
-					sourceImageLayerWidth
-				)
-				const cropLayerIndex = getImageDataIndex(
-					x - sourceX,
-					y - sourceY,
-					cropLayerWidth
-				)
-
-				const sourceImageLayerPixel =
-					sourceImageLayer[sourceImageLayerIndex]
-				const cropLayerPixel = cropLayer[cropLayerIndex]
-
-				const pixelDifference = Math.abs(
-					sourceImageLayerPixel - cropLayerPixel
-				)
-
-				sum += pixelDifference
-			}
-		}
-
-		return sum
-	}
-
-	const sourceImageLayer = sourceImage.data[349].data
-	const cropImageLayer = crop.data[0].data
-
-	console.log(cropImageLayer.slice(0, 300))
-	console.log(
-		sourceImageLayer.slice(
-			getImageDataIndex(200, 250, 800),
-			getImageDataIndex(200 + 300, 250, 800)
-		)
-	)
-
-	return calculateAbsoluteDifferenceSum(
-		sourceImageLayer,
-		cropImageLayer,
-		200,
-		250,
-		800,
-		300,
-		300,
-		1
-	)
-}
-
 // Gets the index for the requested position in a given image
 gpu.addFunction(function getImageDataIndex(x, y, width) {
 	return x + width * y
@@ -556,7 +480,7 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 		}
 
 		// Check to make sure the previous scan found a match
-		if (pipeline[i - 1][0] == null) return { errors: ['No match found'] }
+		if (pipeline[i - 1][0] == null) return { errors: ["No match found"] }
 
 		const positions = [determineBestCandidate(pipeline[i - 1][0])]
 
@@ -578,21 +502,26 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 	}
 }
 
-export const findCropInImage = (sourceImage, crop) => {
+export const findCropInImage = (sourceImage, crop, isRotated = false) => {
 	const errors = validateSourceAndCroppedImages(sourceImage, crop)
 
 	if (errors.length > 0) return { errors }
 
 	console.time("pipeline")
-	const { errors: pipelineErrors, pipeline, positions, bestPosition } = runPipeline(
-		sourceImage,
-		crop,
-		[
-			{ useEveryXPixel: 5, useEveryXLayer: 50, threshold: 0.1 },
-			{ useEveryXPixel: 1, useEveryXLayer: 5, threshold: 0.06 },
-			{ useEveryXPixel: 1, useEveryXLayer: 1, threshold: 0.01 },
-		]
-	)
+	const {
+		errors: pipelineErrors,
+		pipeline,
+		positions,
+		bestPosition,
+	} = runPipeline(sourceImage, crop, [
+		{ useEveryXPixel: 5, useEveryXLayer: 50, threshold: 0.1 },
+		{ useEveryXPixel: 1, useEveryXLayer: 5, threshold: 0.06 },
+		{
+			useEveryXPixel: 1,
+			useEveryXLayer: 1,
+			threshold: isRotated ? 0.05 : 0.01,
+		},
+	])
 	console.timeEnd("pipeline")
 
 	return { errors: pipelineErrors, pipeline, positions, bestPosition }

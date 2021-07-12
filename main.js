@@ -6,6 +6,11 @@ import { createImageUploadCallback } from "./helpers/input-upload-handler"
 import { handleErrors } from "./helpers/handle-errors"
 import { loadImage } from "./helpers/load-image"
 import { displayImage, overlayCrop } from "./helpers/display-image"
+import { isImageRotated } from "./helpers/detect-rotation"
+import {
+	calculateOriginalDimensionsForRotatedImage,
+	correctImage,
+} from "./helpers/correct-image"
 
 // Create places to store the images
 const images = {
@@ -13,16 +18,15 @@ const images = {
 	crop: null,
 }
 
-const showImages = () => {
-	// Display the crop
-	const crop = images.crop.data[0]
-	const cropCanvas = document.querySelector("#crop-image-canvas")
+const showCrop = (image) => {
+	const crop = image.data[0]
+	const canvas = document.querySelector("#crop-image-canvas")
 
 	displayImage({
 		imageData: crop.data,
 		width: crop.imageWidth,
 		height: crop.imageLength,
-		canvasElement: cropCanvas,
+		canvasElement: canvas,
 	})
 }
 
@@ -31,11 +35,31 @@ const analyzeImages = () => {
 
 	if (images.sourceImage == null || images.crop == null) return
 
-	showImages()
+	const { isRotated, angle } = isImageRotated(images.crop)
+
+	if (isRotated) {
+		const crop = images.crop.data[0]
+
+		const image = correctImage(
+			crop.data,
+			crop.imageWidth,
+			crop.imageLength,
+			angle,
+			images.crop.data.length
+		)
+
+		images.crop = {
+			data: image,
+			dimensions: { width: crop.imageWidth, height: crop.imageLength },
+		}
+	}
+
+	showCrop(images.crop)
 
 	const { errors, pipeline, positions, bestPosition } = findCropInImage(
 		images.sourceImage,
-		images.crop
+		images.crop,
+		isRotated
 	)
 
 	handleErrors(errors)
@@ -69,6 +93,30 @@ const analyzeImages = () => {
 		canvasElement: sourceCanvas,
 	})
 
+	if (isRotated) {
+		const currentDimensions = {
+			width: images.crop.data[0].imageWidth,
+			height: images.crop.data[0].imageLength,
+		}
+
+		const {
+			position: _position,
+			width,
+			height,
+		} = calculateOriginalDimensionsForRotatedImage(
+			position,
+			currentDimensions,
+			images.crop.dimensions
+		)
+
+		overlayCrop(sourceCanvas, _position, {
+			w: width,
+			h: height,
+		})
+
+		return
+	}
+
 	overlayCrop(sourceCanvas, position, {
 		w: images.crop.data[0].imageWidth,
 		h: images.crop.data[0].imageLength,
@@ -82,7 +130,7 @@ const useDefaultImages = async () => {
 	})
 	const { data: crop, errors: errors2 } = await loadImage({
 		imagePath:
-			"/samples/Training Crops/5dpf_1_8bit_x_200-500_y_250-550_z_350-650.tif",
+			"/samples/Training Crops/5dpf_1_8bit_x_200-500_y_250-550_z_350-650_Rotated_30deg.tif",
 	})
 
 	// Handle any errors that arise
