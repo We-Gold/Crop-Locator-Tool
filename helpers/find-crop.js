@@ -479,7 +479,7 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 			)
 
 			pipeline.push([positions, convertPosition, result])
-
+			
 			continue
 		}
 
@@ -516,7 +516,25 @@ export const findCropInImage = (sourceImage, crop, isRotated = false) => {
 
 	if (errors.length > 0) return { errors }
 
-	// TODO modify the pipeline for rotated images
+	const defaultLayersConfig = [
+		{ useEveryXPixel: 5, useEveryXLayer: 50, threshold: 0.1 },
+		{ useEveryXPixel: 1, useEveryXLayer: 5, threshold: 0.07 },
+		{
+			useEveryXPixel: 1,
+			useEveryXLayer: 1,
+			threshold: 0.01,
+		},
+	]
+
+	const rotatedLayersConfig = [
+		{ useEveryXPixel: 5, useEveryXLayer: 50, threshold: 0.1 },
+		{ useEveryXPixel: 1, useEveryXLayer: 5, threshold: 0.06 },
+		{
+			useEveryXPixel: 1,
+			useEveryXLayer: 1,
+			threshold: 0.03,
+		},
+	]
 
 	console.time("pipeline")
 	const {
@@ -524,15 +542,7 @@ export const findCropInImage = (sourceImage, crop, isRotated = false) => {
 		pipeline,
 		positions,
 		bestPosition,
-	} = runPipeline(sourceImage, crop, [
-		{ useEveryXPixel: 5, useEveryXLayer: 50, threshold: 0.1 },
-		{ useEveryXPixel: 1, useEveryXLayer: 5, threshold: 0.06 },
-		{
-			useEveryXPixel: 1,
-			useEveryXLayer: 1,
-			threshold: isRotated ? 0.03 : 0.01,
-		},
-	])
+	} = runPipeline(sourceImage, crop, isRotated ? rotatedLayersConfig : defaultLayersConfig)
 	console.timeEnd("pipeline")
 
 	return { errors: pipelineErrors, pipeline, positions, bestPosition }

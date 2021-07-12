@@ -1,16 +1,25 @@
 import Image from "image-js"
 
-export const calculateOriginalDimensionsForRotatedImage = (position, currentDimensions, oldDimensions) => {
-    const x = position.x - (oldDimensions.width - currentDimensions.width) / 2
-    const y = position.y - (oldDimensions.height - currentDimensions.height) / 2
+export const calculateOriginalDimensionsForRotatedImage = (
+	position,
+	currentDimensions,
+	oldDimensions
+) => {
+	const x = position.x - (oldDimensions.width - currentDimensions.width) / 2
+	const y = position.y - (oldDimensions.height - currentDimensions.height) / 2
+    const z = position.z
 
-    return { position: { x, y }, width: oldDimensions.width, height: oldDimensions.height }
+	return {
+		position: { x, y, z },
+		width: oldDimensions.width,
+		height: oldDimensions.height,
+	}
 }
 
 export const correctImage = (imageData, width, height, angle, layers = 1) => {
 	let image = rotateImage(imageData, width, height, angle)
 
-	image = cropImage(image, angle)
+	image = cropImageFromAngle(image, angle)
 
 	return polyfillForTiff(image, layers)
 }
@@ -23,7 +32,7 @@ const rotateImage = (imageData, width, height, angle) => {
 	return image
 }
 
-const cropImage = (image, angle) => {
+const cropImageFromAngle = (image, angle) => {
 	const oldSideLength = image.parent.width
 
 	const triangleHeight = Math.abs(oldSideLength * Math.sin(radians(angle)))
@@ -43,6 +52,31 @@ const cropImage = (image, angle) => {
 	image = image.crop({ x, y, width, height })
 
 	return image
+}
+
+export const cropImage = (
+	imageData,
+	imageWidth,
+	imageHeight,
+	layers,
+	{ width = 100, height = 100 } = {}
+) => {
+	let image = new Image(imageWidth, imageHeight, imageData, { kind: "GREY" })
+
+    const cropWidth = Math.min(width, imageWidth)
+    const cropHeight = Math.min(height, imageHeight)
+
+    const x = (imageWidth - cropWidth) / 2
+    const y = (imageHeight - cropHeight) / 2
+
+	image = image.crop({
+		x,
+		y,
+		width: cropWidth,
+		height: cropHeight,
+	})
+
+	return polyfillForTiff(image, layers)
 }
 
 // Convert angle to radians

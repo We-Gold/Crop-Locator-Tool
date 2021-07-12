@@ -4,12 +4,12 @@ import "./style.css"
 import { findCropInImage } from "./helpers/find-crop"
 import { createImageUploadCallback } from "./helpers/input-upload-handler"
 import { handleErrors } from "./helpers/handle-errors"
-import { loadImage } from "./helpers/load-image"
 import { displayImage, overlayCrop } from "./helpers/display-image"
 import { isImageRotated } from "./helpers/detect-rotation"
 import {
 	calculateOriginalDimensionsForRotatedImage,
 	correctImage,
+	cropImage,
 } from "./helpers/correct-image"
 
 // Create places to store the images
@@ -42,7 +42,32 @@ const analyzeImages = () => {
 			angle,
 			isRotated,
 		}
+	} else {
+		// Crop the image to 100 x 100 or less
+		const crop = cropImage(
+			images.crop.data[0].data,
+			images.crop.dimensions.width,
+			images.crop.dimensions.height,
+			images.crop.data.length,
+			{ width: 100, height: 100 }
+		)
+
+		images.crop = {
+			data: crop,
+			dimensions: images.crop.dimensions,
+		}
 	}
+
+	const cropCanvas = document.querySelector("#crop-canvas")
+
+	const cropLayer = images.crop.data[0]
+
+	displayImage({
+		imageData: cropLayer.data,
+		width: cropLayer.imageWidth,
+		height: cropLayer.imageLength,
+		canvasElement: cropCanvas,
+	})
 
 	const { errors, bestPosition } = findCropInImage(
 		images.sourceImage,
@@ -72,7 +97,23 @@ const analyzeImages = () => {
 		z: bestPosition.z + 1,
 	}
 
-	images.crop.position = position
+
+	const currentDimensions = {
+		width: images.crop.data[0].imageWidth,
+		height: images.crop.data[0].imageLength,
+	}
+
+	const {
+		position: _position,
+		width,
+		height,
+	} = calculateOriginalDimensionsForRotatedImage(
+		position,
+		currentDimensions,
+		images.crop.dimensions
+	)
+
+	images.crop.position = _position
 
 	const sourceImageLayer = images.sourceImage.data[position.z]
 
@@ -83,33 +124,10 @@ const analyzeImages = () => {
 		canvasElement: sourceCanvas,
 	})
 
-	if (isRotated) {
-		const currentDimensions = {
-			width: images.crop.data[0].imageWidth,
-			height: images.crop.data[0].imageLength,
-		}
-
-		const {
-			position: _position,
-			width,
-			height,
-		} = calculateOriginalDimensionsForRotatedImage(
-			position,
-			currentDimensions,
-			images.crop.dimensions
-		)
-
-		overlayCrop(sourceCanvas, _position, {
-			w: width,
-			h: height,
-		})
-
-	} else {
-		overlayCrop(sourceCanvas, position, {
-			w: images.crop.data[0].imageWidth,
-			h: images.crop.data[0].imageLength,
-		})
-	}
+	overlayCrop(sourceCanvas, _position, {
+		w: width,
+		h: height,
+	})
 
 	outputResults()
 }
@@ -125,7 +143,10 @@ const outputResults = () => {
 		z: `${images.crop.position.z}-${
 			images.crop.position.z + images.crop.data.length
 		}`,
-		angle: images.crop.isRotated != null ? `${Math.round(images.crop.angle)}` : "",
+		angle:
+			images.crop.isRotated != null
+				? `${Math.round(images.crop.angle)}`
+				: "",
 	}
 
 	const resultHTML = `Crop Position: <br> x - ${info.x}, y - ${info.y}, z - ${

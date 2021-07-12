@@ -1,5 +1,7 @@
 const handleError = (error) => {
 	console.error(error)
+
+	alert(error)
 }
 
 export const handleErrors = (errors) => {
