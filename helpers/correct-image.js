@@ -5,8 +5,8 @@ export const calculateOriginalDimensionsForRotatedImage = (
 	currentDimensions,
 	oldDimensions
 ) => {
-	const x = position.x - (oldDimensions.width - currentDimensions.width) / 2
-	const y = position.y - (oldDimensions.height - currentDimensions.height) / 2
+	const x = position.x - Math.round((oldDimensions.width - currentDimensions.width) / 2)
+	const y = position.y - Math.round((oldDimensions.height - currentDimensions.height) / 2)
     const z = position.z
 
 	return {
@@ -43,11 +43,13 @@ const cropImageFromAngle = (image, angle) => {
 
 	const smallHypotenuse = interceptPercentage * oldSideLength
 
-	const x = smallHypotenuse * Math.cos(radians(angle))
-	const y = triangleHeight - smallHypotenuse * Math.sin(radians(angle))
+	const x = Math.trunc(smallHypotenuse * Math.cos(radians(angle)))
+	const y = Math.trunc(triangleHeight - smallHypotenuse * Math.sin(radians(angle)))
 
 	const width = image.width - y - x
 	const height = image.height - x - y
+
+	console.log({ x, y, width, height })
 
 	image = image.crop({ x, y, width, height })
 

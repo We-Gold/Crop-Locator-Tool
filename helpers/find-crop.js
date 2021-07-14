@@ -372,6 +372,8 @@ const findAllCloseMatches = ({
 		}
 	}
 
+	console.log({ cropMatchThreshold, relativeMatches, result })
+
 	if (relativeMatches.length == 0) return null
 
 	const positions = relativeMatches.map((match) => {
@@ -479,7 +481,7 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 			)
 
 			pipeline.push([positions, convertPosition, result])
-			
+
 			continue
 		}
 
@@ -503,6 +505,8 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 
 		pipeline.push([matchPositions, convertPosition, matches])
 	}
+
+	console.log(determineBestCandidate(pipeline[pipeline.length - 1][0]))
 
 	return {
 		pipeline,
@@ -528,11 +532,10 @@ export const findCropInImage = (sourceImage, crop, isRotated = false) => {
 
 	const rotatedLayersConfig = [
 		{ useEveryXPixel: 5, useEveryXLayer: 50, threshold: 0.1 },
-		{ useEveryXPixel: 1, useEveryXLayer: 5, threshold: 0.06 },
 		{
 			useEveryXPixel: 1,
 			useEveryXLayer: 1,
-			threshold: 0.03,
+			threshold: 0.05,
 		},
 	]
 
@@ -542,7 +545,11 @@ export const findCropInImage = (sourceImage, crop, isRotated = false) => {
 		pipeline,
 		positions,
 		bestPosition,
-	} = runPipeline(sourceImage, crop, isRotated ? rotatedLayersConfig : defaultLayersConfig)
+	} = runPipeline(
+		sourceImage,
+		crop,
+		isRotated ? rotatedLayersConfig : defaultLayersConfig
+	)
 	console.timeEnd("pipeline")
 
 	return { errors: pipelineErrors, pipeline, positions, bestPosition }

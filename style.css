@@ -58,7 +58,7 @@ hr {
     justify-content: space-evenly;
 }
 
-@media (max-width: 540px) {
+@media (max-width: 585px) {
     #form-area {
         display: flex;
         gap: 1rem;

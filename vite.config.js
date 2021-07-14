@@ -2,8 +2,5 @@ import { defineConfig } from "vite"
 
 export default defineConfig({
 	base: "./",
-	mode: "production",
-	build: {
-    minify: true,
-  }
+	mode: "production"
 })

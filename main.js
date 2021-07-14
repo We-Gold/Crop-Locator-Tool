@@ -70,11 +70,13 @@ const analyzeImages = () => {
 		canvasElement: cropCanvas,
 	})
 
-	const { errors, bestPosition } = findCropInImage(
+	const { errors, pipeline, bestPosition } = findCropInImage(
 		images.sourceImage,
 		images.crop,
 		isRotated
 	)
+
+	console.log(pipeline)
 
 	handleErrors(errors)
 
