@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Install gpu.js headers
-      - run: sudo apt install mesa-common-dev libxi-dev
+        run: sudo apt install mesa-common-dev libxi-dev
 
       - name: Checkout
         uses: actions/checkout@v2.3.1
