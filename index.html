@@ -6,13 +6,23 @@
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.4e235f70.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crop Locator Tool</title>
-<script type="module" crossorigin src="./assets/index.ef6dedaf.js"></script>
+<script type="module" crossorigin src="./assets/index.2caebb95.js"></script>
   <link rel="modulepreload" href="./assets/vendor.a78a7e74.js">
-  <link rel="stylesheet" href="./assets/index.454b1003.css">
+  <link rel="stylesheet" href="./assets/index.d5f558fb.css">
 </head>
 
 <body>
   <h1 id="title-text">Crop Locator Tool</h1>
+  <a href="#" id="toggle-guide-text">Show Usage Guide</a>
+  <div id="guide-text-container">
+    <p id="guide-text">
+      <strong>Overview:</strong> This tool locates crops from tiffs, given the original image and the crop. <br><br>
+      <strong>Usage:</strong> Upload the original image and the crop. <i>The first time a scan is run it will likely be slower.</i> <br>
+      The crop will be highlighted in the original image once the algorithm complete.<br>
+      The location of the image will be displayed, and additional tools and information will be shown underneath. <br>
+      <i>As of now, the tool supports normal and rotated crops, but it is in the plan to add support for resliced (different axes) crops.</i>
+    </p>
+  </div>
   <div id="main-area">
     <div id="form-area">
       <div class="form-column">
