@@ -16,6 +16,21 @@ export const calculateOriginalDimensionsForRotatedImage = (
 	}
 }
 
+export const calculateOriginalDimensionsForCroppedImage = (
+	position,
+	oldDimensions
+) => {
+	const x = position.x
+	const y = position.y
+    const z = position.z
+
+	return {
+		position: { x, y, z },
+		width: oldDimensions.width,
+		height: oldDimensions.height,
+	}
+}
+
 export const correctImage = (imageData, width, height, angle, layers = 1) => {
 	let image = rotateImage(imageData, width, height, angle)
 
@@ -49,8 +64,6 @@ const cropImageFromAngle = (image, angle) => {
 	const width = image.width - y - x
 	const height = image.height - x - y
 
-	console.log({ x, y, width, height })
-
 	image = image.crop({ x, y, width, height })
 
 	return image
@@ -68,12 +81,9 @@ export const cropImage = (
     const cropWidth = Math.min(width, imageWidth)
     const cropHeight = Math.min(height, imageHeight)
 
-    const x = (imageWidth - cropWidth) / 2
-    const y = (imageHeight - cropHeight) / 2
-
 	image = image.crop({
-		x,
-		y,
+		x: 0,
+		y: 0,
 		width: cropWidth,
 		height: cropHeight,
 	})
