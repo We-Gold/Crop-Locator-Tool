@@ -52,11 +52,21 @@ const validateSourceAndCroppedImages = (sourceImage, crop) => {
 	// Make sure the source image is larger than the crop made from it
 	if (
 		sourceImage.data.length < crop.data.length ||
-		sourceImage.data[0].imageWidth < crop.data[0].imageWidth ||
-		sourceImage.data[0].imageLength < crop.data[0].imageLength
+		sourceImage.dimensions.width < crop.dimensions.width ||
+		sourceImage.dimensions.height < crop.dimensions.height
 	)
 		errors.push(
 			"The source image provided is smaller than the cropped image"
+		)
+
+	// Make sure the crop uploaded is not the same as the source image
+	if (
+		sourceImage.data.length == crop.data.length &&
+		sourceImage.dimensions.width == crop.dimensions.width &&
+		sourceImage.dimensions.height == crop.dimensions.height
+	)
+		errors.push(
+			"The crop provided is the same size as the source image"
 		)
 
 	return errors

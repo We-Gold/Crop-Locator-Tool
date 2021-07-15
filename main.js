@@ -104,17 +104,6 @@ const analyzeImages = () => {
 
 	handleCrop(isRotated, angle)
 
-	const cropCanvas = document.querySelector("#crop-canvas")
-
-	const cropLayer = images.crop.data[0]
-
-	displayImage({
-		imageData: cropLayer.data,
-		width: cropLayer.imageWidth,
-		height: cropLayer.imageLength,
-		canvasElement: cropCanvas,
-	})
-
 	const { errors, bestPosition } = findCropInImage(
 		images.sourceImage,
 		images.crop,
@@ -160,6 +149,8 @@ const analyzeImages = () => {
 }
 
 const outputResults = () => {
+	document.querySelector("#info-area").style.visibility = "visible"
+
 	const info = {
 		x: `${images.crop.position.x}-${
 			images.crop.position.x + images.crop.dimensions.width
