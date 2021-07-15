@@ -12,6 +12,7 @@ import {
 	correctImage,
 	cropImage,
 } from "./helpers/correct-image"
+import { handleGuideTextToggle } from "./helpers/guide-text"
 
 // Create places to store the images
 const images = {
@@ -43,7 +44,7 @@ document
 	.querySelector("#crop-image-input")
 	.addEventListener("change", cropImageUploadHandler)
 
-//
+document.querySelector("#toggle-guide-text").addEventListener("click", handleGuideTextToggle)
 
 /**
  * Converts a rotated image to a usable image
@@ -65,7 +66,7 @@ const handleRotatedCrop = (angle) => {
 		data: image,
 		dimensions: images.crop.dimensions,
 		angle,
-		isRotated,
+		isRotated: true,
 	}
 }
 

@@ -7,9 +7,33 @@ html, body {
 
 #title-text {
     margin-top: 1rem;
+    margin-bottom: 1.4rem;
     font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: 3.5rem;
     text-align: center;
+}
+
+#toggle-guide-text {
+    display: block;
+    text-align: center;
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 1rem;
+    text-align: center;
+    color:rgb(189, 100, 16);
+    text-decoration: none;
+}
+
+#guide-text {
+    font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 1rem;
+    text-align: left;
+    color:rgb(160, 160, 160);
+}
+
+#guide-text-container {
+    width: clamp(50vw, 700px, 80vw);
+    margin: 0 auto;
+    display: none;
 }
 
 #main-area {
