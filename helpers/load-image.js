@@ -2,16 +2,23 @@ import * as tiff from "tiff"
 import axios from "axios"
 import { Buffer } from "buffer"
 
+/**
+ * Checks if real image path was provided
+ */
 const validateImagePath = (imagePath) => {
 	const errors = []
 
 	if (imagePath == null || imagePath == undefined)
 		errors.push("No image path provided")
-	// Use regex to check if it is a tiff
 
 	return errors
 }
 
+/**
+ * Loads the image from the given path and converts it to an array buffer
+ * @param {string} imagePath 
+ * @returns {ArrayBuffer}
+ */
 const imagePathToArrayBuffer = async (imagePath) => {
 	// Get the image from the server
 	const response = await axios.get(imagePath, { responseType: "arraybuffer" })
@@ -22,10 +29,11 @@ const imagePathToArrayBuffer = async (imagePath) => {
 	return buffer
 }
 
-export const loadImage = async ({
-	imagePath = null,
-	arrayBuffer = null,
-}) => {
+/**
+ * Loads the given image as a tiff
+ * @returns {Array} An array of tiff layers
+ */
+export const loadImage = async ({ imagePath = null, arrayBuffer = null }) => {
 	// Check to make sure some form of image has been provided
 	if (imagePath == null && arrayBuffer == null)
 		return { errors: ["No image provided"] }
@@ -35,7 +43,8 @@ export const loadImage = async ({
 		const errors = validateImagePath(imagePath)
 
 		// Return any errors that arise
-		if (errors.length != 0) return { errors }
+		if (errors.length != 0)
+			return { errors }
 
 		// Store the loaded image
 		arrayBuffer = await imagePathToArrayBuffer(imagePath)

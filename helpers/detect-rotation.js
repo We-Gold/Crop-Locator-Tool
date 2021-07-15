@@ -2,6 +2,11 @@ function getImageDataIndex(x, y, width) {
 	return x + width * y
 }
 
+/**
+ * Checks if an image is rotated or not
+ * @param {Object} image A decoded tiff
+ * @returns {boolean}
+ */
 export const isImageRotated = (image) => {
 	const { data, imageWidth, imageLength } = image.data[0]
 

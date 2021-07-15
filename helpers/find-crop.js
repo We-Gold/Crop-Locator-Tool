@@ -3,6 +3,14 @@ import { createScanningKernel, createConfirmingKernel } from "./kernels"
 const constrainNumber = (number, min, max) =>
 	Math.min(Math.max(number, min), max)
 
+/**
+ * Calculates where to scan given a previous scan
+ * @param {Object} sourceImage Tiff image
+ * @param {Object} crop Tiff-like image
+ * @param {Object} location
+ * @param {Function} convertPosition
+ * @returns
+ */
 export const countScansNeededForFullCheck = (
 	sourceImage,
 	crop,
@@ -40,6 +48,12 @@ export const countScansNeededForFullCheck = (
 	}
 }
 
+/**
+ * Checks to make sure the images given are valid
+ * @param {Object} sourceImage
+ * @param {Object} crop
+ * @returns {Array} Any errors found
+ */
 const validateSourceAndCroppedImages = (sourceImage, crop) => {
 	const errors = []
 
@@ -65,18 +79,24 @@ const validateSourceAndCroppedImages = (sourceImage, crop) => {
 		sourceImage.dimensions.width == crop.dimensions.width &&
 		sourceImage.dimensions.height == crop.dimensions.height
 	)
-		errors.push(
-			"The crop provided is the same size as the source image"
-		)
+		errors.push("The crop provided is the same size as the source image")
 
 	return errors
 }
 
+/**
+ * Runs a scan of the entire original image to identify potential locations of the given crop
+ * @param {Object} sourceImage
+ * @param {Object} crop
+ * @param {Object} config How many layers to skip and how many pixels to skip in the scan
+ * @returns The result of the scan and a function to turn indices of the results into positions on the image
+ */
 const runOptimizedScan = (
 	sourceImage,
 	crop,
 	{ useEveryXLayer, useEveryXPixel }
 ) => {
+	// Create a kernel on the gpu
 	const scanningKernel = createScanningKernel(
 		sourceImage,
 		crop,
@@ -87,6 +107,7 @@ const runOptimizedScan = (
 
 	let result = []
 
+	// Scan each layer of the source image on the gpu
 	for (let layer = 0; layer <= zAxisScans; layer += useEveryXLayer) {
 		const sourceImageLayer = sourceImage.data[layer]
 		const cropLayer = crop.data[0]
@@ -94,6 +115,7 @@ const runOptimizedScan = (
 		result.push(scanningKernel(sourceImageLayer.data, cropLayer.data))
 	}
 
+	// Converts the given index of the results to a true image coordinate
 	const convertPosition = (coordinate = null) => {
 		if (coordinate == null) return { useEveryXPixel, useEveryXLayer }
 
@@ -107,6 +129,15 @@ const runOptimizedScan = (
 	return [result, convertPosition]
 }
 
+/**
+ * Scans the areas around the given positions to see how well they match
+ * @param {Object} sourceImage
+ * @param {Object} crop
+ * @param {Array} positions
+ * @param {Function} convertPosition
+ * @param {Object} config How many layers to skip and how many pixels to skip in the scan
+ * @returns The result of the scan and a function to turn indices of the results into positions on the image
+ */
 const confirmMatches = (
 	sourceImage,
 	crop,
@@ -114,7 +145,9 @@ const confirmMatches = (
 	convertPosition,
 	{ useEveryXLayer, useEveryXPixel }
 ) => {
+	// Creates a gpu kernel for each given position
 	const kernels = positions.map((location, index) => {
+		// Calculate where the scan should start
 		const { xScanStart, yScanStart } = countScansNeededForFullCheck(
 			sourceImage,
 			crop,
@@ -122,6 +155,7 @@ const confirmMatches = (
 			convertPosition
 		)
 
+		// Creates the gpu kernel
 		return createConfirmingKernel(
 			sourceImage,
 			crop,
@@ -133,6 +167,7 @@ const confirmMatches = (
 		)
 	})
 
+	// Runs all of the kernels and stores their results
 	const matchesToBeScanned = kernels.map((kernel, index) => {
 		const { zScanStart, zAxisScans } = countScansNeededForFullCheck(
 			sourceImage,
@@ -143,6 +178,7 @@ const confirmMatches = (
 
 		let result = []
 
+		// March through and scan the layers of each location
 		for (
 			let layer = zScanStart;
 			layer <= zScanStart + zAxisScans;
@@ -177,6 +213,11 @@ const confirmMatches = (
 	return [matchesToBeScanned, convertMatchPosition]
 }
 
+/**
+ * Calculates the threshold for an image to be a match
+ * @param {Object} config
+ * @returns {number}
+ */
 const calculateCropMatchThreshold = ({
 	threshold = 0.1,
 	cropWidth,
@@ -192,6 +233,11 @@ const calculateCropMatchThreshold = ({
 	return threshold * maxDifference * totalPixels
 }
 
+/**
+ * Identify the best matches found by the scan
+ * @param {Object} config
+ * @returns {Array}
+ */
 const findAllCloseMatches = ({
 	result,
 	crop,
@@ -200,6 +246,7 @@ const findAllCloseMatches = ({
 }) => {
 	const { useEveryXPixel, useEveryXLayer } = convertPosition()
 
+	// Calculate the threshold for an image to be a match
 	const cropMatchThreshold = calculateCropMatchThreshold({
 		threshold,
 		cropWidth: crop.data[0].imageWidth,
@@ -210,6 +257,7 @@ const findAllCloseMatches = ({
 
 	const relativeMatches = []
 
+	// March through the results of the scan and find all of the scans that are within the threshold
 	for (const [z, layer] of Object.entries(result)) {
 		for (const [y, array] of Object.entries(layer)) {
 			for (const [x, number] of Object.entries(array)) {
@@ -224,6 +272,7 @@ const findAllCloseMatches = ({
 
 	if (relativeMatches.length == 0) return null
 
+	// Converts the indices into true image coordinates
 	const positions = relativeMatches.map((match) => {
 		const index = match.index
 
@@ -240,6 +289,7 @@ const flatten = (array) => {
 	return array.reduce((a, b) => a.concat(b), [])
 }
 
+// Performs a scan of the full image
 const optimizedScan = (
 	sourceImage,
 	crop,
@@ -260,6 +310,7 @@ const optimizedScan = (
 	return [positions, convertPosition, result]
 }
 
+// Performs a scan of all given locations
 const matchesScan = (
 	sourceImage,
 	crop,
@@ -311,16 +362,21 @@ const determineBestCandidate = (positions) => {
 	)
 }
 
+/**
+ * Runs through a given scanning pipeline
+ * @param {Object} sourceImage
+ * @param {Object} crop
+ * @param {Object} layersConfig
+ * @returns {Object} The results of the pipeline
+ */
 const runPipeline = (sourceImage, crop, layersConfig) => {
-	// Loop through all the layers in layersConfig
-	// For the first layer, we run an optimized scan, and feed the result to the next layer
-	// For all following layers, we run a match scan, and feed the result to the next layer
-	// The result of the last layer is the final result
 	const pipeline = []
 
+	// Perform each scan in the pipeline
 	for (const [i, layerConfig] of layersConfig.entries()) {
 		const { useEveryXPixel, useEveryXLayer, threshold } = layerConfig
 
+		// Scan the whole image initially
 		if (i === 0) {
 			const [positions, convertPosition, result] = optimizedScan(
 				sourceImage,
@@ -343,6 +399,7 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 
 		const positions = [determineBestCandidate(pipeline[i - 1][0])]
 
+		// Scan the best match from the previous scan
 		const [matchPositions, convertPosition, matches] = matchesScan(
 			sourceImage,
 			crop,
@@ -361,6 +418,13 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 	}
 }
 
+/**
+ * Scans the source image and the crop to determine the original location of the crop
+ * @param {Object} sourceImage
+ * @param {Object} crop
+ * @param {boolean} isRotated
+ * @returns The results of the scans
+ */
 export const findCropInImage = (sourceImage, crop, isRotated = false) => {
 	const errors = validateSourceAndCroppedImages(sourceImage, crop)
 

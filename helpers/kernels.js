@@ -10,6 +10,9 @@ function getImageDataIndex(x, y, width) {
 
 gpu.addFunction(getImageDataIndex)
 
+/**
+ * Creates a kernel for scanning the whole image
+ */
 export const createScanningKernel = (sourceImage, crop, useEveryXPixel) => {
 	// Calculate the number of scans needed per axis
 	const xAxisScans = Math.trunc(
@@ -21,12 +24,15 @@ export const createScanningKernel = (sourceImage, crop, useEveryXPixel) => {
 			useEveryXPixel
 	)
 
+	// Perform SAD with the crop and the source image
 	const kernelFunction = function (sourceImageLayer, cropLayer) {
 		const sourceX = this.thread.x * this.constants.useEveryXPixel,
 			sourceY = this.thread.y * this.constants.useEveryXPixel
 
 		let sum = 0
 
+		// March through the source image
+		// and compare each of the pixels in the area to the crop
 		for (
 			let _x = 0;
 			_x < this.constants.cropLayerWidth;
@@ -78,6 +84,9 @@ export const createScanningKernel = (sourceImage, crop, useEveryXPixel) => {
 		})
 }
 
+/**
+ * Creates a kernel for scanning a specific area of the source image
+ */
 export const createConfirmingKernel = (
 	sourceImage,
 	crop,
@@ -94,6 +103,7 @@ export const createConfirmingKernel = (
 		convertPosition
 	)
 
+	// Perform SAD with the crop and the area of the source image
 	const kernelFunction = function (sourceImageLayer, cropLayer) {
 		const sourceX =
 				this.thread.x * this.constants.useEveryXPixel +
@@ -104,6 +114,8 @@ export const createConfirmingKernel = (
 
 		let sum = 0
 
+		// March through the source image
+		// and compare each of the pixels in the area to the crop
 		for (
 			let _x = 0;
 			_x < this.constants.cropLayerWidth;
