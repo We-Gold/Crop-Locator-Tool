@@ -369,7 +369,7 @@ const determineBestCandidate = (positions) => {
  * @param {Object} layersConfig
  * @returns {Object} The results of the pipeline
  */
-const runPipeline = (sourceImage, crop, layersConfig) => {
+const runPipeline = (sourceImage, crop, layersConfig, layerCompleteCallback = null) => {
 	const pipeline = []
 
 	// Perform each scan in the pipeline
@@ -385,6 +385,8 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 			)
 
 			pipeline.push([positions, convertPosition, result])
+
+			if(layerCompleteCallback != null) layerCompleteCallback({layers: layersConfig.length, layerFinished: i + 1})
 
 			continue
 		}
@@ -409,6 +411,8 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
 		)
 
 		pipeline.push([matchPositions, convertPosition, matches])
+
+		if(layerCompleteCallback != null) layerCompleteCallback({layers: layersConfig.length, layerFinished: i + 1})
 	}
 
 	return {
@@ -423,9 +427,10 @@ const runPipeline = (sourceImage, crop, layersConfig) => {
  * @param {Object} sourceImage
  * @param {Object} crop
  * @param {boolean} isRotated
+ * @param {Function} pipelineLayerCompleteCallback Runs on the completion of a layer of the pipeline
  * @returns The results of the scans
  */
-export const findCropInImage = (sourceImage, crop, isRotated = false) => {
+export const findCropInImage = (sourceImage, crop, {isRotated = false, pipelineLayerCompleteCallback = null} = {}) => {
 	const errors = validateSourceAndCroppedImages(sourceImage, crop)
 
 	if (errors.length > 0) return { errors }
@@ -458,7 +463,8 @@ export const findCropInImage = (sourceImage, crop, isRotated = false) => {
 	} = runPipeline(
 		sourceImage,
 		crop,
-		isRotated ? rotatedLayersConfig : defaultLayersConfig
+		isRotated ? rotatedLayersConfig : defaultLayersConfig,
+		pipelineLayerCompleteCallback
 	)
 	console.timeEnd("pipeline")
 

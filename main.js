@@ -13,6 +13,7 @@ import {
 	cropImage,
 } from "./helpers/correct-image"
 import { handleGuideTextToggle } from "./helpers/guide-text"
+import { setProgressBarToPercent } from "./helpers/progress-bar"
 
 // Create places to store the images
 const images = {
@@ -140,11 +141,17 @@ const showNormalCropOverlay = ({position, sourceCanvas}) => {
 	})
 }
 
+const pipelineLayerCompleteCallback = ({layers, layerFinished}) => {
+	setProgressBarToPercent(layerFinished / layers)
+}
+
 /**
  * Locates the crop and passes the information on to the web interface
  */
 const analyzeImages = () => {
 	if (images.sourceImage == null || images.crop == null) return
+
+	setProgressBarToPercent(0)
 
 	const { isRotated, angle } = isImageRotated(images.crop)
 
@@ -154,7 +161,7 @@ const analyzeImages = () => {
 	const { errors, bestPosition } = findCropInImage(
 		images.sourceImage,
 		images.crop,
-		isRotated
+		{isRotated, pipelineLayerCompleteCallback}
 	)
 
 	handleErrors(errors)
