@@ -1,25 +1,26 @@
 import * as plotty from "plotty"
+import { radians } from "./correct-image"
 
 export const overlayCrop = (
 	canvasElement,
 	position,
-    size,
+	size,
 	{
 		strokeColor = "rgb(64, 196, 82)",
 		highlightColor = "rgba(64, 196, 82, 0.3)",
 	} = {}
 ) => {
-    const ctx = canvasElement.getContext("2d")
+	const ctx = canvasElement.getContext("2d")
 
-    ctx.fillStyle = highlightColor
-    ctx.strokeStyle = strokeColor
+	ctx.fillStyle = highlightColor
+	ctx.strokeStyle = strokeColor
 
-    const {x, y} = position
+	const { x, y } = position
 
-    const {w, h} = size
+	const { w, h } = size
 
-    ctx.fillRect(x, y, w, h)
-    ctx.strokeRect(x, y, w, h)
+	ctx.fillRect(x, y, w, h)
+	ctx.strokeRect(x, y, w, h)
 }
 
 export const displayImage = ({
@@ -38,11 +39,83 @@ export const displayImage = ({
 		height,
 		domain: imageRange,
 		colorScale,
-        useWebGL: false
+		useWebGL: false,
 	})
 
 	// Render the plot to the canvas
 	plot.render()
+
+	return plot
+}
+
+export const showCroppedAreaOnImage = async ({
+	imageData,
+	width,
+	height,
+	canvasElement,
+	imageRange = [0, 255],
+	colorScale = "greys",
+	cropPosition,
+	cropDimensions,
+	angle = null,
+}) => {
+	const ctx = canvasElement.getContext("2d")
+
+	const { x, y } = cropPosition
+	const { width: cropWidth, height: cropHeight } = cropDimensions
+
+	const [canvasWidth, canvasHeight] = [
+		width,
+		height,
+	]
+
+	// Create a plotty plot for the given image
+	const plot = new plotty.plot({
+		canvas: canvasElement,
+		data: imageData,
+		width,
+		height,
+		domain: imageRange,
+		colorScale,
+		useWebGL: false,
+	})
+
+	// Render the plot to the canvas
+	plot.render()
+	
+	// Make every other area of the canvas black
+	ctx.fillStyle = "rgb(0,0,0)"
+
+	ctx.save()
+
+	const image = await createImageBitmap(ctx.getImageData(x, y, cropWidth, cropHeight))
+
+	ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+
+	// Apply transformations
+	ctx.translate(x + cropWidth / 2, y + cropHeight / 2)
+	if(angle != null) ctx.rotate(radians(angle))
+
+	ctx.drawImage(image, -cropWidth / 2, -cropHeight / 2)
+
+	// Reset the transformation matrix
+	ctx.restore()
+
+	if(angle != null) {
+		ctx.save()
+
+		const image = await createImageBitmap(ctx.getImageData(x, y, cropWidth, cropHeight))
+
+		ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+
+		// Apply transformations
+		ctx.translate(x + cropWidth / 2, y + cropHeight / 2)
+
+		ctx.drawImage(image, -cropWidth / 2, -cropHeight / 2)
+
+		// Reset the transformation matrix
+		ctx.restore()
+	}
 
 	return plot
 }

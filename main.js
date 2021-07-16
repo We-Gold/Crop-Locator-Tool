@@ -1,10 +1,17 @@
 // Import the css
 import "./style.css"
 
-import { findCropInImage, validateSourceAndCroppedImages } from "./helpers/find-crop"
+import {
+	findCropInImage,
+	validateSourceAndCroppedImages,
+} from "./helpers/find-crop"
 import { createImageUploadCallback } from "./helpers/input-upload-handler"
 import { handleErrors } from "./helpers/handle-errors"
-import { displayImage, overlayCrop } from "./helpers/display-image"
+import {
+	displayImage,
+	overlayCrop,
+	showCroppedAreaOnImage,
+} from "./helpers/display-image"
 import { isImageRotated } from "./helpers/detect-rotation"
 import {
 	calculateOriginalDimensionsForRotatedImage,
@@ -45,11 +52,13 @@ document
 	.querySelector("#crop-image-input")
 	.addEventListener("change", cropImageUploadHandler)
 
-document.querySelector("#toggle-guide-text").addEventListener("click", handleGuideTextToggle)
+document
+	.querySelector("#toggle-guide-text")
+	.addEventListener("click", handleGuideTextToggle)
 
 /**
  * Converts a rotated image to a usable image
- * @param {number} angle 
+ * @param {number} angle
  */
 const handleRotatedCrop = (angle) => {
 	const crop = images.crop.data[0]
@@ -93,7 +102,7 @@ const handleNormalCrop = () => {
 /**
  * Displays an overlay of the crop on the original image
  */
-const showRotatedCropOverlay = ({position, sourceCanvas}) => {
+const showRotatedCropOverlay = ({ position, sourceCanvas }) => {
 	// Record the current dimensions of the crop
 	const currentDimensions = {
 		width: images.crop.data[0].imageWidth,
@@ -101,11 +110,7 @@ const showRotatedCropOverlay = ({position, sourceCanvas}) => {
 	}
 
 	// Determine the dimensions of the overlay
-	const {
-		position: _position,
-		width,
-		height,
-	} = calculateOriginalDimensionsForRotatedImage(
+	const { position: _position } = calculateOriginalDimensionsForRotatedImage(
 		position,
 		currentDimensions,
 		images.crop.dimensions
@@ -114,21 +119,17 @@ const showRotatedCropOverlay = ({position, sourceCanvas}) => {
 	images.crop.position = _position
 
 	overlayCrop(sourceCanvas, _position, {
-		w: width,
-		h: height,
+		w: images.crop.dimensions.width,
+		h: images.crop.dimensions.height,
 	})
 }
 
 /**
  * Displays an overlay of the crop on the original image
  */
-const showNormalCropOverlay = ({position, sourceCanvas}) => {
+const showNormalCropOverlay = ({ position, sourceCanvas }) => {
 	// Determine the dimensions of the overlay
-	const {
-		position: _position,
-		width,
-		height,
-	} = calculateOriginalDimensionsForCroppedImage(
+	const { position: _position } = calculateOriginalDimensionsForCroppedImage(
 		position,
 		images.crop.dimensions
 	)
@@ -136,12 +137,12 @@ const showNormalCropOverlay = ({position, sourceCanvas}) => {
 	images.crop.position = _position
 
 	overlayCrop(sourceCanvas, _position, {
-		w: width,
-		h: height,
+		w: images.crop.dimensions.width,
+		h: images.crop.dimensions.height,
 	})
 }
 
-const pipelineLayerCompleteCallback = ({layers, layerFinished}) => {
+const pipelineLayerCompleteCallback = ({ layers, layerFinished }) => {
 	setProgressBarToPercent(layerFinished / layers)
 }
 
@@ -166,7 +167,10 @@ const analyzeImages = async () => {
 		canvasElement: sourceCanvas,
 	})
 
-	const validationErrors = validateSourceAndCroppedImages(images.sourceImage, images.crop)
+	const validationErrors = validateSourceAndCroppedImages(
+		images.sourceImage,
+		images.crop
+	)
 
 	handleErrors(validationErrors)
 
@@ -174,13 +178,13 @@ const analyzeImages = async () => {
 
 	const { isRotated, angle } = isImageRotated(images.crop)
 
-	if(isRotated) handleRotatedCrop(angle)
+	if (isRotated) handleRotatedCrop(angle)
 	else handleNormalCrop()
 
 	const { errors, bestPosition } = await findCropInImage(
 		images.sourceImage,
 		images.crop,
-		{isRotated, pipelineLayerCompleteCallback}
+		{ isRotated, pipelineLayerCompleteCallback }
 	)
 
 	handleErrors(errors)
@@ -205,10 +209,12 @@ const analyzeImages = async () => {
 		canvasElement: sourceCanvas,
 	})
 
-	if(isRotated) showRotatedCropOverlay({position, sourceCanvas})
-	else showNormalCropOverlay({position, sourceCanvas})
+	if (isRotated) showRotatedCropOverlay({ position, sourceCanvas })
+	else showNormalCropOverlay({ position, sourceCanvas })
 
 	outputResults()
+
+	await showCropOnBlackBackground()
 }
 
 /**
@@ -240,4 +246,20 @@ const outputResults = () => {
 	const cropInfo = document.querySelector("#crop-info")
 
 	cropInfo.innerHTML = resultHTML
+}
+
+const showCropOnBlackBackground = () => {
+	const cropCanvas = document.querySelector("#crop-canvas")
+
+	const sourceImageLayer = images.sourceImage.data[images.crop.position.z - 1]
+
+	showCroppedAreaOnImage({
+		imageData: sourceImageLayer.data,
+		width: sourceImageLayer.imageWidth,
+		height: sourceImageLayer.imageLength,
+		canvasElement: cropCanvas,
+		cropPosition: images.crop.position,
+		cropDimensions: images.crop.dimensions,
+		angle: images.crop.isRotated ? images.crop.angle : null,
+	})
 }

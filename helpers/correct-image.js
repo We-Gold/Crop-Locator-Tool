@@ -143,7 +143,7 @@ export const cropImage = (
 }
 
 // Convert angle to radians
-const radians = (angle) => (angle * Math.PI) / 180
+export const radians = (angle) => (angle * Math.PI) / 180
 
 /**
  * Creates an array that mimics the original tiff format
