@@ -1,7 +1,7 @@
 // Import the css
 import "./style.css"
 
-import { findCropInImage } from "./helpers/find-crop"
+import { findCropInImage, validateSourceAndCroppedImages } from "./helpers/find-crop"
 import { createImageUploadCallback } from "./helpers/input-upload-handler"
 import { handleErrors } from "./helpers/handle-errors"
 import { displayImage, overlayCrop } from "./helpers/display-image"
@@ -165,6 +165,12 @@ const analyzeImages = async () => {
 		height: sourceImage.imageLength,
 		canvasElement: sourceCanvas,
 	})
+
+	const validationErrors = validateSourceAndCroppedImages(images.sourceImage, images.crop)
+
+	handleErrors(validationErrors)
+
+	if (validationErrors.length > 0) return
 
 	const { isRotated, angle } = isImageRotated(images.crop)
 

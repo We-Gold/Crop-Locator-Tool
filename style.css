@@ -78,7 +78,12 @@ html, body {
 }
 
 #crop-info {
-    margin: 0;
+    margin-top: 0.25rem;
+    margin-bottom: 0rem;
+}
+
+#crop-info > span {
+    color: rgb(255, 204, 0);
 }
 
 hr {

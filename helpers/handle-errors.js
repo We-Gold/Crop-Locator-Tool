@@ -1,7 +1,11 @@
-const handleError = (error) => {
-	console.error(error)
+import { setProgressBarToPercent } from "./progress-bar"
 
-	alert(error)
+const handleError = (error) => {
+	// Display the error in the crop info text box
+	document.querySelector("#crop-info").innerHTML = `<span>${error}</span>`
+
+	// Update the progress bar
+	setProgressBarToPercent(1)
 }
 
 export const handleErrors = (errors) => {

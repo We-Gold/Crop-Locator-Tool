@@ -54,7 +54,7 @@ export const countScansNeededForFullCheck = (
  * @param {Object} crop
  * @returns {Array} Any errors found
  */
-const validateSourceAndCroppedImages = (sourceImage, crop) => {
+export const validateSourceAndCroppedImages = (sourceImage, crop) => {
 	const errors = []
 
 	// Confirm that the images are defined
@@ -429,7 +429,7 @@ const runPipeline = (sourceImage, crop, layersConfig, layerCompleteCallback = nu
 
 				return
 			}
-			
+
 			const positions = [determineBestCandidate(pipeline[i - 1][0])]
 
 			// Scan the best match from the previous scan
@@ -459,10 +459,6 @@ const runPipeline = (sourceImage, crop, layersConfig, layerCompleteCallback = nu
  * @returns The results of the scans
  */
 export const findCropInImage = async (sourceImage, crop, {isRotated = false, pipelineLayerCompleteCallback = null} = {}) => {
-	const errors = validateSourceAndCroppedImages(sourceImage, crop)
-
-	if (errors.length > 0) return { errors }
-
 	const defaultLayersConfig = [
 		{ useEveryXPixel: 10, useEveryXLayer: 50, threshold: 0.1 },
 		{ useEveryXPixel: 10, useEveryXLayer: 5, threshold: 0.06 },
