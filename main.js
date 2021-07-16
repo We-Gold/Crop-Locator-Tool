@@ -148,23 +148,12 @@ const pipelineLayerCompleteCallback = ({layers, layerFinished}) => {
 /**
  * Locates the crop and passes the information on to the web interface
  */
-const analyzeImages = () => {
+const analyzeImages = async () => {
 	if (images.sourceImage == null || images.crop == null) return
 
+	document.querySelector("#info-area").style.visibility = "visible"
+
 	setProgressBarToPercent(0)
-
-	const { isRotated, angle } = isImageRotated(images.crop)
-
-	if(isRotated) handleRotatedCrop(angle)
-	else handleNormalCrop()
-
-	const { errors, bestPosition } = findCropInImage(
-		images.sourceImage,
-		images.crop,
-		{isRotated, pipelineLayerCompleteCallback}
-	)
-
-	handleErrors(errors)
 
 	const sourceCanvas = document.querySelector("#source-image-canvas")
 
@@ -176,6 +165,19 @@ const analyzeImages = () => {
 		height: sourceImage.imageLength,
 		canvasElement: sourceCanvas,
 	})
+
+	const { isRotated, angle } = isImageRotated(images.crop)
+
+	if(isRotated) handleRotatedCrop(angle)
+	else handleNormalCrop()
+
+	const { errors, bestPosition } = await findCropInImage(
+		images.sourceImage,
+		images.crop,
+		{isRotated, pipelineLayerCompleteCallback}
+	)
+
+	handleErrors(errors)
 
 	// Don't show the overlay if the crop is not from the source image
 	if (errors != undefined && errors.length > 0) return
@@ -207,8 +209,6 @@ const analyzeImages = () => {
  * Outputs information that was found through scanning the images
  */
 const outputResults = () => {
-	document.querySelector("#info-area").style.visibility = "visible"
-
 	// Collect all the ouput information
 	const info = {
 		x: `${images.crop.position.x}-${
