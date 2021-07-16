@@ -42,13 +42,15 @@
         </div>
         <p id="crop-info"></p>
         <hr>
-        <canvas id="crop-canvas" class="info-canvas"></canvas>
-        <!-- <hr>
+        <div id="processed-canvas-container">
+          <canvas id="crop-canvas" class="info-canvas" title="Crop in its original location with a black background"></canvas>
+          <canvas id="replaced-crop-canvas" class="info-canvas"></canvas>
+        </div>
+        <hr>
         <div class="form-column">
-          <label for="new-crop-input">Replace the crop</label>
+          <label for="new-crop-input">Apply tranformation to different image</label>
           <input type="file" id="new-crop-input" class="upload">
         </div>
-        <canvas id="replaced-crop-canvas" class="info-canvas"></canvas> -->
       </div>
     </div>
   </div>
