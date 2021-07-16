@@ -6,9 +6,9 @@
   <link rel="icon" type="image/svg+xml" href="./assets/favicon.4e235f70.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Crop Locator Tool</title>
-<script type="module" crossorigin src="./assets/index.24444d95.js"></script>
+<script type="module" crossorigin src="./assets/index.d88db800.js"></script>
   <link rel="modulepreload" href="./assets/vendor.a78a7e74.js">
-  <link rel="stylesheet" href="./assets/index.3b7c496f.css">
+  <link rel="stylesheet" href="./assets/index.735809db.css">
 </head>
 
 <body>
@@ -45,13 +45,15 @@
         </div>
         <p id="crop-info"></p>
         <hr>
-        <canvas id="crop-canvas" class="info-canvas"></canvas>
-        <!-- <hr>
+        <div id="processed-canvas-container">
+          <canvas id="crop-canvas" class="info-canvas" title="Crop in its original location with a black background"></canvas>
+          <canvas id="replaced-crop-canvas" class="info-canvas"></canvas>
+        </div>
+        <hr>
         <div class="form-column">
-          <label for="new-crop-input">Replace the crop</label>
+          <label for="new-crop-input">Apply tranformation to different image</label>
           <input type="file" id="new-crop-input" class="upload">
         </div>
-        <canvas id="replaced-crop-canvas" class="info-canvas"></canvas> -->
       </div>
     </div>
   </div>
