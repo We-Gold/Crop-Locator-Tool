@@ -4,3 +4,6 @@ dist
 dist-ssr
 *.local
 samples
+cypress/fixtures/*
+cypress/videos/*
+cypress/screenshots/*
