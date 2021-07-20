@@ -459,9 +459,11 @@ const runPipeline = (sourceImage, crop, layersConfig, layerCompleteCallback = nu
  * @returns The results of the scans
  */
 export const findCropInImage = async (sourceImage, crop, {isRotated = false, pipelineLayerCompleteCallback = null} = {}) => {
+	const useEveryXPixel = selectHowManyPixelsToSkip(crop)
+
 	const defaultLayersConfig = [
-		{ useEveryXPixel: 10, useEveryXLayer: 50, threshold: 0.1 },
-		{ useEveryXPixel: 10, useEveryXLayer: 5, threshold: 0.06 },
+		{ useEveryXPixel, useEveryXLayer: 50, threshold: 0.1 },
+		{ useEveryXPixel, useEveryXLayer: 5, threshold: 0.06 },
 		{
 			useEveryXPixel: 1,
 			useEveryXLayer: 1,
@@ -470,7 +472,7 @@ export const findCropInImage = async (sourceImage, crop, {isRotated = false, pip
 	]
 
 	const rotatedLayersConfig = [
-		{ useEveryXPixel: 5, useEveryXLayer: 50, threshold: 0.1 },
+		{ useEveryXPixel, useEveryXLayer: 50, threshold: 0.1 },
 		{
 			useEveryXPixel: 1,
 			useEveryXLayer: 1,
@@ -490,4 +492,14 @@ export const findCropInImage = async (sourceImage, crop, {isRotated = false, pip
 	)
 
 	return { errors: pipelineErrors, pipeline, bestPosition }
+}
+
+/**
+ * @param {Object} crop 
+ */
+const selectHowManyPixelsToSkip = (crop) => {
+	if(crop.data[0].imageWidth <= 25) return 1
+	if(crop.data[0].imageWidth <= 75) return 5
+	
+	return 10
 }

@@ -147,8 +147,8 @@ export const radians = (angle) => (angle * Math.PI) / 180
 
 /**
  * Creates an array that mimics the original tiff format
- * @param {Image} image 
- * @param {number} layers 
+ * @param {Image} image
+ * @param {number} layers
  * @returns {Array}
  */
 const polyfillForTiff = (image, layers) => {
