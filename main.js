@@ -19,6 +19,7 @@ import {
 	calculateOriginalDimensionsForCroppedImage,
 	correctImage,
 	cropImage,
+	resliceImage,
 } from "./helpers/correct-image"
 import { handleGuideTextToggle } from "./helpers/guide-text"
 import { setProgressBarToPercent } from "./helpers/progress-bar"
@@ -108,7 +109,9 @@ const handleRotatedCrop = (angle) => {
 
 	images.crop = {
 		data: image,
+		original: images.crop.original,
 		dimensions: images.crop.dimensions,
+		originalDimensions: images.crop.originalDimensions,
 		angle,
 		isRotated: true,
 	}
@@ -129,7 +132,9 @@ const handleNormalCrop = () => {
 
 	images.crop = {
 		data: crop,
+		original: images.crop.original,
 		dimensions: images.crop.dimensions,
+		originalDimensions: images.crop.originalDimensions,
 	}
 }
 
@@ -180,6 +185,65 @@ const pipelineLayerCompleteCallback = ({ layers, layerFinished }) => {
 	setProgressBarToPercent(layerFinished / layers)
 }
 
+const resliceCrop = (axis, layer = 0) => {
+	images.crop = resliceImage(images.crop, axis, layer)
+}
+
+const resliceAndScanFromAxis = async (axis) => {
+	// Reset the crop
+	images.crop.data = images.crop.original
+	images.crop.dimensions = images.crop.originalDimensions
+
+	resliceCrop(axis)
+
+	const imageRotatedInfo = isImageRotated(images.crop)
+
+	if (imageRotatedInfo.isRotated) handleRotatedCrop(imageRotatedInfo.angle)
+	else handleNormalCrop()
+
+	const results = await findCropInImage(images.sourceImage, images.crop, {
+		isRotated: imageRotatedInfo.isRotated,
+		isResliced: true,
+		pipelineLayerCompleteCallback,
+	})
+
+	return { imageRotatedInfo, results }
+}
+
+const searchForCrop = async () => {
+	let imageRotatedInfo = isImageRotated(images.crop)
+
+	if (imageRotatedInfo.isRotated) handleRotatedCrop(imageRotatedInfo.angle)
+	else handleNormalCrop()
+
+	let results = await findCropInImage(images.sourceImage, images.crop, {
+		isRotated: imageRotatedInfo.isRotated,
+		pipelineLayerCompleteCallback,
+	})
+
+	// Try reslicing the image from the top
+	if (results.errors != undefined && results.errors.length > 0) {
+		const scanResults = await resliceAndScanFromAxis("top")
+
+		imageRotatedInfo = scanResults.imageRotatedInfo
+		results = scanResults.results
+	}
+
+	// Try reslicing the image from the left
+	if (results.errors != undefined && results.errors.length > 0) {
+		const scanResults = await resliceAndScanFromAxis("left")
+
+		imageRotatedInfo = scanResults.imageRotatedInfo
+		results = scanResults.results
+	}
+
+	return {
+		errors: results.errors,
+		bestPosition: results.bestPosition,
+		isRotated: imageRotatedInfo.isRotated,
+	}
+}
+
 /**
  * Locates the crop and passes the information on to the web interface
  */
@@ -212,20 +276,10 @@ const analyzeImages = async () => {
 
 	if (validationErrors.length > 0) return
 
-	const { isRotated, angle } = isImageRotated(images.crop)
-
-	if (isRotated) handleRotatedCrop(angle)
-	else handleNormalCrop()
-
-	const { errors, bestPosition } = await findCropInImage(
-		images.sourceImage,
-		images.crop,
-		{ isRotated, pipelineLayerCompleteCallback }
-	)
+	const { errors, bestPosition, isRotated } = await searchForCrop()
 
 	handleErrors(errors)
 
-	// Don't show the overlay if the crop is not from the source image
 	if (errors != undefined && errors.length > 0) return
 
 	const position = {

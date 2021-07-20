@@ -373,27 +373,35 @@ const determineBestCandidate = (positions) => {
  * @param {Object} layersConfig
  * @returns {Object} The results of the pipeline
  */
-const runPipeline = (sourceImage, crop, layersConfig, layerCompleteCallback = null) => {
+const runPipeline = (
+	sourceImage,
+	crop,
+	layersConfig,
+	layerCompleteCallback = null
+) => {
 	const pipeline = []
 
 	let i = 0
 
-	return new Promise(resolve => {
+	return new Promise((resolve) => {
 		const interval = setInterval(() => {
-			if(i == layersConfig.length) {
+			if (i == layersConfig.length) {
 				clearInterval(interval)
 
 				resolve({
 					pipeline,
-					bestPosition: determineBestCandidate(pipeline[pipeline.length - 1][0]),
+					bestPosition: determineBestCandidate(
+						pipeline[pipeline.length - 1][0]
+					),
 				})
 
 				return
 			}
 
-			if(i > pipeline.length) return
+			if (i > pipeline.length) return
 
-			const { useEveryXPixel, useEveryXLayer, threshold } = layersConfig[i]
+			const { useEveryXPixel, useEveryXLayer, threshold } =
+				layersConfig[i]
 
 			// Scan the whole image initially
 			if (i === 0) {
@@ -405,7 +413,11 @@ const runPipeline = (sourceImage, crop, layersConfig, layerCompleteCallback = nu
 
 				pipeline.push([positions, convertPosition, result])
 
-				if(layerCompleteCallback != null) layerCompleteCallback({layers: layersConfig.length, layerFinished: i + 1})
+				if (layerCompleteCallback != null)
+					layerCompleteCallback({
+						layers: layersConfig.length,
+						layerFinished: i + 1,
+					})
 
 				i++
 
@@ -422,7 +434,7 @@ const runPipeline = (sourceImage, crop, layersConfig, layerCompleteCallback = nu
 			}
 
 			// Check to make sure the elements of the positions from the previous scan are not null
-			if (!pipeline[i - 1][0].some((p) => p != null)){
+			if (!pipeline[i - 1][0].some((p) => p != null)) {
 				clearInterval(interval)
 
 				resolve({ errors: ["No match found"] })
@@ -443,10 +455,14 @@ const runPipeline = (sourceImage, crop, layersConfig, layerCompleteCallback = nu
 
 			pipeline.push([matchPositions, convertPosition, matches])
 
-			if(layerCompleteCallback != null) layerCompleteCallback({layers: layersConfig.length, layerFinished: i + 1})
+			if (layerCompleteCallback != null)
+				layerCompleteCallback({
+					layers: layersConfig.length,
+					layerFinished: i + 1,
+				})
 
 			i++
-		}, 0)	
+		}, 0)
 	})
 }
 
@@ -458,7 +474,11 @@ const runPipeline = (sourceImage, crop, layersConfig, layerCompleteCallback = nu
  * @param {Function} pipelineLayerCompleteCallback Runs on the completion of a layer of the pipeline
  * @returns The results of the scans
  */
-export const findCropInImage = async (sourceImage, crop, {isRotated = false, pipelineLayerCompleteCallback = null} = {}) => {
+export const findCropInImage = async (
+	sourceImage,
+	crop,
+	{ isRotated = false, pipelineLayerCompleteCallback = null } = {}
+) => {
 	const useEveryXPixel = selectHowManyPixelsToSkip(crop)
 
 	const defaultLayersConfig = [
@@ -495,11 +515,11 @@ export const findCropInImage = async (sourceImage, crop, {isRotated = false, pip
 }
 
 /**
- * @param {Object} crop 
+ * @param {Object} crop
  */
 const selectHowManyPixelsToSkip = (crop) => {
-	if(crop.data[0].imageWidth <= 25) return 1
-	if(crop.data[0].imageWidth <= 75) return 5
-	
+	if (crop.data[0].imageWidth <= 25) return 1
+	if (crop.data[0].imageWidth <= 75) return 5
+
 	return 10
 }

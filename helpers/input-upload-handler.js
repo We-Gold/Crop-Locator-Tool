@@ -45,6 +45,17 @@ export const createImageUploadCallback = ({
 
 		if (data == null) return
 
-		callback({ data, dimensions: { width: data[0].imageWidth, height: data[0].imageLength } })
+		callback({
+			data,
+			original: data,
+			dimensions: {
+				width: data[0].imageWidth,
+				height: data[0].imageLength,
+			},
+			originalDimensions: {
+				width: data[0].imageWidth,
+				height: data[0].imageLength,
+			},
+		})
 	}
 }
