@@ -88,7 +88,7 @@ const rotateImage = (imageData, width, height, angle) => {
  * @returns {Image}
  */
 const cropImageFromAngle = (image, angle) => {
-	const oldSideLength = image.parent.width
+	const oldSideLength = Math.max(image.parent.width, image.parent.height)
 
 	const triangleHeight = Math.abs(oldSideLength * Math.sin(radians(angle)))
 	const triangleWidth = Math.abs(oldSideLength * Math.cos(radians(angle)))
