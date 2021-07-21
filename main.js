@@ -24,6 +24,15 @@ import {
 import { handleGuideTextToggle } from "./helpers/guide-text"
 import { setProgressBarToPercent } from "./helpers/progress-bar"
 
+// Register the service worker for offline support
+import { registerSW } from "virtual:pwa-register"
+
+registerSW({
+	onOfflineReady() {
+		console.log("Working in offline mode.")
+	},
+})
+
 // Create places to store the images
 const images = {
 	sourceImage: null,
