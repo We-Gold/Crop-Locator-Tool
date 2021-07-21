@@ -493,6 +493,7 @@ export const findCropInImage = async (
 
 	const rotatedLayersConfig = [
 		{ useEveryXPixel, useEveryXLayer: 50, threshold: 0.1 },
+		{ useEveryXPixel, useEveryXLayer: 5, threshold: 0.08 },
 		{
 			useEveryXPixel: 1,
 			useEveryXLayer: 1,
