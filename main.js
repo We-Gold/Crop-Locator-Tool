@@ -52,8 +52,13 @@ const replaceCropUploadHandler = createImageUploadCallback({
 		if (
 			images.crop.dimensions.width != image.dimensions.width ||
 			images.crop.dimensions.height != image.dimensions.height
-		)
+		) {
+			document.querySelector("#warning-text").style.display = "block"
+
 			return
+		}
+
+		document.querySelector("#warning-text").style.display = "none"
 
 		const replacedCropCanvas = document.querySelector(
 			"#replaced-crop-canvas"
@@ -258,6 +263,8 @@ const analyzeImages = async () => {
 	document.querySelector("#replaced-crop-canvas").style.visibility = "hidden"
 
 	document.querySelector("#info-area").style.visibility = "visible"
+
+	document.querySelector("#warning-text").style.display = "none"
 
 	setProgressBarToPercent(0)
 

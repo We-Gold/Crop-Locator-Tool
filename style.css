@@ -158,3 +158,10 @@ hr {
     height: 1rem;
     border-radius: 0;
 }
+
+#warning-text {
+    color: rgb(255, 204, 0);
+    display: none;
+    margin-top: 0;
+    margin-bottom: 0.2rem;
+}
