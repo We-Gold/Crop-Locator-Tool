@@ -120,34 +120,29 @@ hr {
     gap: 0.3rem;
 }
 
-.upload::-webkit-file-upload-button {
-    display: none;
-}
-
-.upload::before {
-    content: 'Choose file';
+.upload-text {
     display: inline-block;
+    cursor: pointer;
     background-color: rgb(49, 49, 49);
     border: none;
     border-radius: 3px;
-    padding: 5px 8px;
+    padding: 8px 12px;
     outline: none;
     white-space: nowrap;
     user-select: none;
     -webkit-user-select: none;
     cursor: pointer;
-    font-weight: 700;
+    font-weight: 600;
     font-size: 0.8rem;
-    margin-right: 0.3rem;
     font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.upload:hover::before {
-    border-color: black;
+.upload::-webkit-file-upload-button {
+    display: none;
 }
 
-.upload:active::before {
-    background: rgb(19, 19, 19);
+.upload::file-selector-button {
+    display: none;
 }
 
 #progress-bar {
