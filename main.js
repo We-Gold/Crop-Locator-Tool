@@ -207,10 +207,12 @@ const resliceAndScanFromAxis = async (axis) => {
 		pipelineLayerCompleteCallback,
 	})
 
-	return { imageRotatedInfo, results }
+	return { imageRotatedInfo, results, reslicedDirection: axis }
 }
 
 const searchForCrop = async () => {
+	let reslicedDirection = null
+
 	let imageRotatedInfo = isImageRotated(images.crop)
 
 	if (imageRotatedInfo.isRotated) handleRotatedCrop(imageRotatedInfo.angle)
@@ -227,6 +229,7 @@ const searchForCrop = async () => {
 
 		imageRotatedInfo = scanResults.imageRotatedInfo
 		results = scanResults.results
+		reslicedDirection = scanResults.reslicedDirection
 	}
 
 	// Try reslicing the image from the left
@@ -235,12 +238,14 @@ const searchForCrop = async () => {
 
 		imageRotatedInfo = scanResults.imageRotatedInfo
 		results = scanResults.results
+		reslicedDirection = scanResults.reslicedDirection
 	}
 
 	return {
 		errors: results.errors,
 		bestPosition: results.bestPosition,
 		isRotated: imageRotatedInfo.isRotated,
+		reslicedDirection,
 	}
 }
 
@@ -276,7 +281,8 @@ const analyzeImages = async () => {
 
 	if (validationErrors.length > 0) return
 
-	const { errors, bestPosition, isRotated } = await searchForCrop()
+	const { errors, bestPosition, isRotated, reslicedDirection } =
+		await searchForCrop()
 
 	handleErrors(errors)
 
@@ -289,6 +295,7 @@ const analyzeImages = async () => {
 	}
 
 	images.crop.position = position
+	images.crop.reslicedDirection = reslicedDirection
 
 	const sourceImageLayer = images.sourceImage.data[position.z - 1]
 
@@ -326,17 +333,27 @@ const outputResults = () => {
 			images.crop.isRotated != null
 				? `${Math.round(images.crop.angle)}`
 				: "",
+		resliced:
+			images.crop.reslicedDirection != null
+				? `Resliced from: ${capitalizeFirstLetter(
+						images.crop.reslicedDirection
+				  )}`
+				: "",
 	}
 
 	// Generate html to show the crop's position
 	const resultHTML = `Crop Position: <br> x - ${info.x}, y - ${info.y}, z - ${
 		info.z
-	} ${images.crop.isRotated != null ? `<br> Rotated - ${info.angle}°` : ""}`
+	} ${images.crop.isRotated != null ? `<br> Rotated - ${info.angle}°` : ""} ${
+		images.crop.reslicedDirection != null ? `<br> ${info.resliced}` : ""
+	}`
 
 	const cropInfo = document.querySelector("#crop-info")
 
 	cropInfo.innerHTML = resultHTML
 }
+
+const capitalizeFirstLetter = (str) => str[0].toUpperCase() + str.slice(1)
 
 const showCropOnBlackBackground = () => {
 	const cropCanvas = document.querySelector("#crop-canvas")
