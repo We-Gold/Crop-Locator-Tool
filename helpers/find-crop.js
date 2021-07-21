@@ -388,6 +388,12 @@ const runPipeline = (
 			if (i == layersConfig.length) {
 				clearInterval(interval)
 
+				if (pipeline[pipeline.length - 1][0][0] == null) {
+					resolve({ errors: ["No match found"] })
+
+					return
+				}
+
 				resolve({
 					pipeline,
 					bestPosition: determineBestCandidate(
@@ -483,7 +489,7 @@ export const findCropInImage = async (
 
 	const defaultLayersConfig = [
 		{ useEveryXPixel, useEveryXLayer: 50, threshold: 0.1 },
-		{ useEveryXPixel, useEveryXLayer: 5, threshold: 0.06 },
+		{ useEveryXPixel, useEveryXLayer: 5, threshold: 0.12 },
 		{
 			useEveryXPixel: 1,
 			useEveryXLayer: 1,
@@ -493,7 +499,7 @@ export const findCropInImage = async (
 
 	const rotatedLayersConfig = [
 		{ useEveryXPixel, useEveryXLayer: 50, threshold: 0.1 },
-		{ useEveryXPixel, useEveryXLayer: 5, threshold: 0.08 },
+		{ useEveryXPixel, useEveryXLayer: 5, threshold: 0.12 },
 		{
 			useEveryXPixel: 1,
 			useEveryXLayer: 1,
@@ -519,8 +525,10 @@ export const findCropInImage = async (
  * @param {Object} crop
  */
 const selectHowManyPixelsToSkip = (crop) => {
-	if (crop.data[0].imageWidth <= 25) return 1
-	if (crop.data[0].imageWidth <= 75) return 5
+	const referenceDimension = Math.min(crop.data[0].imageWidth, crop.data[0].imageLength)
+
+	if (referenceDimension <= 50) return 1
+	if (referenceDimension < 100) return 4
 
 	return 10
 }

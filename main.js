@@ -23,6 +23,7 @@ import {
 } from "./helpers/correct-image"
 import { handleGuideTextToggle } from "./helpers/guide-text"
 import { setProgressBarToPercent } from "./helpers/progress-bar"
+import { isImageNested } from "./helpers/image-is-nested"
 
 // Register the service worker for offline support
 import { registerSW } from "virtual:pwa-register"
@@ -37,7 +38,10 @@ registerSW({
 const images = {
 	sourceImage: null,
 	crop: null,
+	mainCrop: null,
 }
+
+const isNesting = true
 
 const sourceImageUploadHandler = createImageUploadCallback({
 	callback: (image) => {
@@ -155,7 +159,11 @@ const handleNormalCrop = () => {
 /**
  * Displays an overlay of the crop on the original image
  */
-const showRotatedCropOverlay = ({ position, sourceCanvas }) => {
+const showRotatedCropOverlay = ({
+	position,
+	sourceCanvas,
+	isNested = false,
+}) => {
 	// Record the current dimensions of the crop
 	const currentDimensions = {
 		width: images.crop.data[0].imageWidth,
@@ -171,16 +179,25 @@ const showRotatedCropOverlay = ({ position, sourceCanvas }) => {
 
 	images.crop.position = _position
 
-	overlayCrop(sourceCanvas, _position, {
-		w: images.crop.dimensions.width,
-		h: images.crop.dimensions.height,
-	})
+	overlayCrop(
+		sourceCanvas,
+		_position,
+		{
+			w: images.crop.dimensions.width,
+			h: images.crop.dimensions.height,
+		},
+		{ isNested }
+	)
 }
 
 /**
  * Displays an overlay of the crop on the original image
  */
-const showNormalCropOverlay = ({ position, sourceCanvas }) => {
+const showNormalCropOverlay = ({
+	position,
+	sourceCanvas,
+	isNested = false,
+}) => {
 	// Determine the dimensions of the overlay
 	const { position: _position } = calculateOriginalDimensionsForCroppedImage(
 		position,
@@ -189,10 +206,15 @@ const showNormalCropOverlay = ({ position, sourceCanvas }) => {
 
 	images.crop.position = _position
 
-	overlayCrop(sourceCanvas, _position, {
-		w: images.crop.dimensions.width,
-		h: images.crop.dimensions.height,
-	})
+	overlayCrop(
+		sourceCanvas,
+		_position,
+		{
+			w: images.crop.dimensions.width,
+			h: images.crop.dimensions.height,
+		},
+		{ isNested }
+	)
 }
 
 const pipelineLayerCompleteCallback = ({ layers, layerFinished }) => {
@@ -275,18 +297,9 @@ const analyzeImages = async () => {
 
 	document.querySelector("#warning-text").style.display = "none"
 
-	setProgressBarToPercent(0)
-
 	const sourceCanvas = document.querySelector("#source-image-canvas")
 
-	const sourceImage = images.sourceImage.data[0]
-
-	displayImage({
-		imageData: sourceImage.data,
-		width: sourceImage.imageWidth,
-		height: sourceImage.imageLength,
-		canvasElement: sourceCanvas,
-	})
+	setProgressBarToPercent(0)
 
 	const validationErrors = validateSourceAndCroppedImages(
 		images.sourceImage,
@@ -302,7 +315,18 @@ const analyzeImages = async () => {
 
 	handleErrors(errors)
 
-	if (errors != undefined && errors.length > 0) return
+	if (errors != undefined && errors.length > 0) {
+		const sourceImage = images.sourceImage.data[0]
+
+		displayImage({
+			imageData: sourceImage.data,
+			width: sourceImage.imageWidth,
+			height: sourceImage.imageLength,
+			canvasElement: sourceCanvas,
+		})
+
+		return
+	}
 
 	const position = {
 		x: bestPosition.x,
@@ -313,17 +337,44 @@ const analyzeImages = async () => {
 	images.crop.position = position
 	images.crop.reslicedDirection = reslicedDirection
 
-	const sourceImageLayer = images.sourceImage.data[position.z - 1]
+	if (images.mainCrop == null) images.mainCrop = images.crop
 
-	displayImage({
-		imageData: sourceImageLayer.data,
-		width: sourceImageLayer.imageWidth,
-		height: sourceImageLayer.imageLength,
-		canvasElement: sourceCanvas,
-	})
+	const nested = isImageNested(
+		{
+			x: images.crop.position.x,
+			y: images.crop.position.y,
+			layer: images.crop.position.z,
+			width: images.crop.dimensions.width,
+			height: images.crop.dimensions.height,
+		},
+		{
+			x: images.mainCrop.position.x,
+			y: images.mainCrop.position.y,
+			layer: images.mainCrop.position.z,
+			width: images.mainCrop.dimensions.width,
+			height: images.mainCrop.dimensions.height,
+		}
+	)
 
-	if (isRotated) showRotatedCropOverlay({ position, sourceCanvas })
-	else showNormalCropOverlay({ position, sourceCanvas })
+	if (isNesting && nested) {
+		if (isRotated)
+			showRotatedCropOverlay({ position, sourceCanvas, isNested: true })
+		else showNormalCropOverlay({ position, sourceCanvas, isNested: true })
+	} else {
+		images.mainCrop = images.crop
+
+		const sourceImageLayer = images.sourceImage.data[position.z - 1]
+
+		displayImage({
+			imageData: sourceImageLayer.data,
+			width: sourceImageLayer.imageWidth,
+			height: sourceImageLayer.imageLength,
+			canvasElement: sourceCanvas,
+		})
+
+		if (isRotated) showRotatedCropOverlay({ position, sourceCanvas })
+		else showNormalCropOverlay({ position, sourceCanvas })
+	}
 
 	outputResults()
 

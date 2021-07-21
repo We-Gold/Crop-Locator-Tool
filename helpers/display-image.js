@@ -1,16 +1,45 @@
 import * as plotty from "plotty"
 import { radians } from "./correct-image"
 
+const colorManager = function () {
+	let color = 0
+
+	const colors = [
+		{
+			strokeColor: "rgb(64, 196, 82)",
+			highlightColor: "rgb(64, 196, 82, 0.3)",
+		},
+		{
+			strokeColor: "rgb(255, 243, 33)",
+			highlightColor: "rgb(255, 243, 33, 0.3)",
+		},
+		{
+			strokeColor: "rgb(193, 63, 63)",
+			highlightColor: "rgb(193, 63, 63, 0.3)",
+		},
+	]
+
+	const getNextColor = (isNested = false) => {
+		if (isNested) color = (color + 1) % colors.length
+		else color = 0
+
+		return colors[color]
+	}
+
+	return { getNextColor }
+}()
+
 export const overlayCrop = (
 	canvasElement,
 	position,
 	size,
 	{
-		strokeColor = "rgb(64, 196, 82)",
-		highlightColor = "rgba(64, 196, 82, 0.3)",
+		isNested = false,
 	} = {}
 ) => {
 	const ctx = canvasElement.getContext("2d")
+
+	const { highlightColor, strokeColor } = colorManager.getNextColor(isNested)
 
 	ctx.fillStyle = highlightColor
 	ctx.strokeStyle = strokeColor
