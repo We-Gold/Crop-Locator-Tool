@@ -1,10 +1,8 @@
 // Import the css
 import "./style.css"
 
-import {
-	findCropInImage,
-	validateSourceAndCroppedImages,
-} from "./helpers/find-crop"
+import { findCropInImage } from "./helpers/find-crop"
+import { validateSourceAndCroppedImages } from "./helpers/validate-images"
 import { createImageUploadCallback } from "./helpers/input-upload-handler"
 import { handleErrors } from "./helpers/handle-errors"
 import {
@@ -13,17 +11,16 @@ import {
 	showCroppedAreaOnImage,
 	replaceCropInSourceImage,
 } from "./helpers/display-image"
-import { isImageRotated } from "./helpers/detect-rotation"
 import {
 	calculateOriginalDimensionsForRotatedImage,
 	calculateOriginalDimensionsForCroppedImage,
-	correctImage,
-	cropImage,
-	resliceImage,
-} from "./helpers/correct-image"
+} from "./helpers/calculate-original-dimensions"
+import { resliceImage } from "./helpers/reslice-image"
 import { handleGuideTextToggle } from "./helpers/guide-text"
 import { setProgressBarToPercent } from "./helpers/progress-bar"
 import { isImageNested } from "./helpers/image-is-nested"
+import { images } from "./helpers/images-manager"
+import { preprocessCrop } from "./helpers/preprocess-crop"
 
 // Register the service worker for offline support
 import { registerSW } from "virtual:pwa-register"
@@ -33,13 +30,6 @@ registerSW({
 		console.log("Working in offline mode.")
 	},
 })
-
-// Create places to store the images
-const images = {
-	sourceImage: null,
-	crop: null,
-	mainCrop: null,
-}
 
 const isNesting = true
 
@@ -108,53 +98,6 @@ document
 document
 	.querySelector("#toggle-guide-text")
 	.addEventListener("click", handleGuideTextToggle)
-
-/**
- * Converts a rotated image to a usable image
- * @param {number} angle
- */
-const handleRotatedCrop = (angle) => {
-	const crop = images.crop.data[0]
-
-	// Rotate and crop the given image to extract a usable image
-	const image = correctImage(
-		crop.data,
-		crop.imageWidth,
-		crop.imageLength,
-		angle,
-		images.crop.data.length
-	)
-
-	images.crop = {
-		data: image,
-		original: images.crop.original,
-		dimensions: images.crop.dimensions,
-		originalDimensions: images.crop.originalDimensions,
-		angle,
-		isRotated: true,
-	}
-}
-
-/**
- * Crops the given crop image to a smaller size to improve performance
- */
-const handleNormalCrop = () => {
-	// Crop the image to 150 x 150 or less
-	const crop = cropImage(
-		images.crop.data[0].data,
-		images.crop.dimensions.width,
-		images.crop.dimensions.height,
-		images.crop.data.length,
-		{ width: 150, height: 150 }
-	)
-
-	images.crop = {
-		data: crop,
-		original: images.crop.original,
-		dimensions: images.crop.dimensions,
-		originalDimensions: images.crop.originalDimensions,
-	}
-}
 
 /**
  * Displays an overlay of the crop on the original image
@@ -232,10 +175,7 @@ const resliceAndScanFromAxis = async (axis) => {
 
 	resliceCrop(axis)
 
-	const imageRotatedInfo = isImageRotated(images.crop)
-
-	if (imageRotatedInfo.isRotated) handleRotatedCrop(imageRotatedInfo.angle)
-	else handleNormalCrop()
+	const imageRotatedInfo = preprocessCrop()
 
 	const results = await findCropInImage(images.sourceImage, images.crop, {
 		isRotated: imageRotatedInfo.isRotated,
@@ -249,10 +189,7 @@ const resliceAndScanFromAxis = async (axis) => {
 const searchForCrop = async () => {
 	let reslicedDirection = null
 
-	let imageRotatedInfo = isImageRotated(images.crop)
-
-	if (imageRotatedInfo.isRotated) handleRotatedCrop(imageRotatedInfo.angle)
-	else handleNormalCrop()
+	let imageRotatedInfo = preprocessCrop()
 
 	let results = await findCropInImage(images.sourceImage, images.crop, {
 		isRotated: imageRotatedInfo.isRotated,

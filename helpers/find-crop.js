@@ -1,88 +1,6 @@
-import { createScanningKernel, createConfirmingKernel } from "./kernels"
-
-const constrainNumber = (number, min, max) =>
-	Math.min(Math.max(number, min), max)
-
-/**
- * Calculates where to scan given a previous scan
- * @param {Object} sourceImage Tiff image
- * @param {Object} crop Tiff-like image
- * @param {Object} location
- * @param {Function} convertPosition
- * @returns
- */
-export const countScansNeededForFullCheck = (
-	sourceImage,
-	crop,
-	location,
-	convertPosition
-) => {
-	const { useEveryXPixel, useEveryXLayer } = convertPosition()
-
-	const xAxisMax = Math.abs(
-		sourceImage.data[0].imageWidth - crop.data[0].imageWidth
-	)
-	const xScanStart = constrainNumber(location.x - useEveryXPixel, 0, xAxisMax)
-	const xScanEnd = constrainNumber(location.x + useEveryXPixel, 0, xAxisMax)
-	const xAxisScans = xScanEnd - xScanStart
-
-	const yAxisMax = Math.abs(
-		sourceImage.data[0].imageLength - crop.data[0].imageLength
-	)
-	const yScanStart = constrainNumber(location.y - useEveryXPixel, 0, yAxisMax)
-	const yScanEnd = constrainNumber(location.y + useEveryXPixel, 0, yAxisMax)
-	const yAxisScans = yScanEnd - yScanStart
-
-	const zAxisMax = Math.abs(sourceImage.data.length - crop.data.length)
-	const zScanStart = constrainNumber(location.z - useEveryXLayer, 0, zAxisMax)
-	const zScanEnd = constrainNumber(location.z + useEveryXLayer, 0, zAxisMax)
-	const zAxisScans = zScanEnd - zScanStart
-
-	return {
-		xScanStart,
-		xAxisScans,
-		yScanStart,
-		yAxisScans,
-		zScanStart,
-		zAxisScans,
-	}
-}
-
-/**
- * Checks to make sure the images given are valid
- * @param {Object} sourceImage
- * @param {Object} crop
- * @returns {Array} Any errors found
- */
-export const validateSourceAndCroppedImages = (sourceImage, crop) => {
-	const errors = []
-
-	// Confirm that the images are defined
-	if (sourceImage == null || sourceImage == undefined)
-		errors.push("The source image provided is not defined")
-	if (crop == null || crop == undefined)
-		errors.push("The cropped image provided is not defined")
-
-	// Make sure the source image is larger than the crop made from it
-	if (
-		sourceImage.data.length < crop.data.length ||
-		sourceImage.dimensions.width < crop.dimensions.width ||
-		sourceImage.dimensions.height < crop.dimensions.height
-	)
-		errors.push(
-			"The source image provided is smaller than the cropped image"
-		)
-
-	// Make sure the crop uploaded is not the same as the source image
-	if (
-		sourceImage.data.length == crop.data.length &&
-		sourceImage.dimensions.width == crop.dimensions.width &&
-		sourceImage.dimensions.height == crop.dimensions.height
-	)
-		errors.push("The crop provided is the same size as the source image")
-
-	return errors
-}
+import { createScanningKernel, createConfirmingKernel } from "./create-kernels"
+import { generatePipelineConfig } from "./generate-pipeline-config"
+import { countScansNeededForFullCheck } from "./count-scans-in-area"
 
 /**
  * Runs a scan of the entire original image to identify potential locations of the given crop
@@ -485,27 +403,8 @@ export const findCropInImage = async (
 	crop,
 	{ isRotated = false, pipelineLayerCompleteCallback = null } = {}
 ) => {
-	const useEveryXPixel = selectHowManyPixelsToSkip(crop)
 
-	const defaultLayersConfig = [
-		{ useEveryXPixel, useEveryXLayer: 50, threshold: 0.1 },
-		{ useEveryXPixel, useEveryXLayer: 5, threshold: 0.12 },
-		{
-			useEveryXPixel: 1,
-			useEveryXLayer: 1,
-			threshold: 0.01,
-		},
-	]
-
-	const rotatedLayersConfig = [
-		{ useEveryXPixel, useEveryXLayer: 50, threshold: 0.1 },
-		{ useEveryXPixel, useEveryXLayer: 5, threshold: 0.12 },
-		{
-			useEveryXPixel: 1,
-			useEveryXLayer: 1,
-			threshold: 0.03,
-		},
-	]
+	const pipelineConfig = generatePipelineConfig(crop, isRotated)
 
 	const {
 		errors: pipelineErrors,
@@ -514,21 +413,9 @@ export const findCropInImage = async (
 	} = await runPipeline(
 		sourceImage,
 		crop,
-		isRotated ? rotatedLayersConfig : defaultLayersConfig,
+		pipelineConfig,
 		pipelineLayerCompleteCallback
 	)
 
 	return { errors: pipelineErrors, pipeline, bestPosition }
-}
-
-/**
- * @param {Object} crop
- */
-const selectHowManyPixelsToSkip = (crop) => {
-	const referenceDimension = Math.min(crop.data[0].imageWidth, crop.data[0].imageLength)
-
-	if (referenceDimension <= 50) return 1
-	if (referenceDimension < 100) return 4
-
-	return 10
 }
