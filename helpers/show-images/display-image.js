@@ -1,5 +1,5 @@
 import * as plotty from "plotty"
-import { radians } from "./preprocess-image/correct-image"
+import { radians } from "../preprocess-image/correct-image"
 
 const colorManager = function () {
 	let color = 0
