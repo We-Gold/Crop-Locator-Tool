@@ -1,5 +1,5 @@
 import Image from "image-js"
-import { polyfillForTiff } from "./polyfill-for-tiff"
+import { polyfillForTiff } from "../tiff-decoding/polyfill-for-tiff"
 
 /**
  * Corrects a rotated image into a usable crop

@@ -1,4 +1,4 @@
-import { setProgressBarToPercent } from "./progress-bar"
+import { setProgressBarToPercent } from "./dom-management/progress-bar"
 
 const handleError = (error) => {
 	// Display the error in the crop info text box

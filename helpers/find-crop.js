@@ -1,5 +1,5 @@
-import { generatePipelineConfig } from "./generate-pipeline-config"
-import { runPipeline } from "./pipeline"
+import { generatePipelineConfig } from "./pipeline/generate-pipeline-config"
+import { runPipeline } from "./pipeline/pipeline"
 
 /**
  * Scans the source image and the crop to determine the original location of the crop

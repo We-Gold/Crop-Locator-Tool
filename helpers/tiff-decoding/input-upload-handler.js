@@ -1,4 +1,4 @@
-import { handleErrors } from "./handle-errors"
+import { handleErrors } from "../handle-errors"
 import { loadImage } from "./load-image"
 
 /* From: https://stackoverflow.com/questions/7460272/getting-image-dimensions-using-javascript-file-api */

@@ -2,8 +2,8 @@
 import "./style.css"
 
 import { findCropInImage } from "./helpers/find-crop"
-import { validateSourceAndCroppedImages } from "./helpers/validate-images"
-import { createImageUploadCallback } from "./helpers/input-upload-handler"
+import { validateSourceAndCroppedImages } from "./helpers/tiff-decoding/validate-images"
+import { createImageUploadCallback } from "./helpers/tiff-decoding/input-upload-handler"
 import { handleErrors } from "./helpers/handle-errors"
 import {
 	displayImage,
@@ -14,13 +14,13 @@ import {
 import {
 	calculateOriginalDimensionsForRotatedImage,
 	calculateOriginalDimensionsForCroppedImage,
-} from "./helpers/calculate-original-dimensions"
-import { resliceImage } from "./helpers/reslice-image"
-import { handleGuideTextToggle } from "./helpers/guide-text"
-import { setProgressBarToPercent } from "./helpers/progress-bar"
-import { isImageNested } from "./helpers/image-is-nested"
+} from "./helpers/preprocess-image/calculate-original-dimensions"
+import { resliceImage } from "./helpers/preprocess-image/reslice-image"
+import { handleGuideTextToggle } from "./helpers/dom-management/guide-text"
+import { setProgressBarToPercent } from "./helpers/dom-management/progress-bar"
+import { isImageNested } from "./helpers/preprocess-image/image-is-nested"
 import { images } from "./helpers/images-manager"
-import { preprocessCrop } from "./helpers/preprocess-crop"
+import { preprocessCrop } from "./helpers/preprocess-image/preprocess-crop"
 
 // Register the service worker for offline support
 import { registerSW } from "virtual:pwa-register"

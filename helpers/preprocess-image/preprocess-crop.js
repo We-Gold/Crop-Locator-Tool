@@ -1,4 +1,4 @@
-import { images } from "./images-manager"
+import { images } from "../images-manager"
 import { correctRotatedImage } from "./correct-image"
 import { isImageRotated } from "./detect-rotation"
 import { cropImage } from "./crop-image"
