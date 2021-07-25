@@ -1,0 +1,1 @@
+export const sourceCanvas = document.querySelector("#source-image-canvas")

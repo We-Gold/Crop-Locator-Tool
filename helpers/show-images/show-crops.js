@@ -5,13 +5,13 @@ import {
 } from "../preprocess-image/calculate-original-dimensions"
 import { overlayCrop } from "./display-image"
 import { showCroppedAreaOnImage } from "./display-image"
+import { sourceCanvas } from "../dom-management/source-canvas"
 
 /**
  * Displays an overlay of the crop on the original image
  */
 export const showRotatedCropOverlay = ({
 	position,
-	sourceCanvas,
 	isNested = false,
 }) => {
 	// Record the current dimensions of the crop
@@ -45,7 +45,6 @@ export const showRotatedCropOverlay = ({
  */
 export const showNormalCropOverlay = ({
 	position,
-	sourceCanvas,
 	isNested = false,
 }) => {
 	// Determine the dimensions of the overlay
