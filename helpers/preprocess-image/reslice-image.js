@@ -14,14 +14,16 @@ export const resliceImage = (image, axis = "left", layer = 0) => {
 			? makeReslicedImageTop(image, dimensions, layer)
 			: makeReslicedImageLeft(image, dimensions, layer)
 
+	const reslicedImage = transposeImage(pixelArray, dimensions.width, dimensions.height)
+
 	// Creates the object with all of the data needed to replace the original crop
 	const newCrop = {
 		data: polyfillForTiff(
-			transposeImage(pixelArray, dimensions.width, dimensions.height),
+			reslicedImage,
 			dimensions.length
 		),
 		original: image.data,
-		dimensions,
+		dimensions: {width: reslicedImage.width, height: reslicedImage.height},
 		originalDimensions: image.dimensions,
 	}
 
