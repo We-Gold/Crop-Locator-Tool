@@ -4,8 +4,10 @@ import { isImageRotated } from "./detect-rotation"
 import { cropImage } from "./crop-image"
 
 export const preprocessCrop = () => {
+	// Determine if the image has been rotated
 	const { isRotated, angle } = isImageRotated(images.crop)
 
+	// Preprocess the image
 	if (isRotated) preprocessRotatedCrop(angle)
 	else preprocessNormalCrop()
 
@@ -19,7 +21,7 @@ export const preprocessCrop = () => {
 const preprocessRotatedCrop = (angle) => {
 	const crop = images.crop.data[0]
 
-	// Rotate and crop the given image to extract a usable image
+	// Straighten and crop the given image to extract a usable image
 	const image = correctRotatedImage(
 		crop.data,
 		crop.imageWidth,

@@ -40,13 +40,21 @@ export const generatePipelineConfig = (crop, isRotated) => {
 
 
 /**
+ * All of the values in this function were found experimentally
+ * 
+ * Modify these if the crop is not being located.
+ * 
  * @param {Object} crop
  */
  const selectHowManyPixelsToSkip = (crop) => {
+	
+	let useEveryXPixel = 10
+
+	// Store the smallest dimension of the crop 
 	const referenceDimension = Math.min(crop.data[0].imageWidth, crop.data[0].imageLength)
 
-	if (referenceDimension <= 50) return 1
-	if (referenceDimension < 100) return 4
+	if (referenceDimension <= 50) useEveryXPixel = 1
+	if (referenceDimension < 100) useEveryXPixel = 4
 
-	return 10
+	return useEveryXPixel
 }

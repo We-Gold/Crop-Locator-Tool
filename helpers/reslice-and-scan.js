@@ -11,8 +11,10 @@ export const resliceAndScanFromAxis = async (axis) => {
 
 	resliceCrop(axis)
 
+	// Preprocess the crop before searching for it
 	const imageRotatedInfo = preprocessCrop()
 
+	// Attempt to locate the crop in the source image
 	const results = await findCropInImage(images.sourceImage, images.crop, {
 		isRotated: imageRotatedInfo.isRotated,
 		isResliced: true,

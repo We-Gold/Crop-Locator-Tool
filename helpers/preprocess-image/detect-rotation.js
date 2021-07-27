@@ -14,6 +14,8 @@ export const isImageRotated = (image) => {
 	let isRotated = true
 	let angle = null
 
+	// Any of the corners not being black/empty indicates that the image is not rotated
+	// Note: this is a shortcut that can prevent any further calculations
 	if (!allCornersAreBlack(data, imageWidth, imageLength)) isRotated = false
 
 	const { leftMostBlackPixel, bottomMostBlackPixel } = findTrianglePoints(
@@ -23,11 +25,14 @@ export const isImageRotated = (image) => {
 	)
 
 	// If either end of the potential "black triangle" which indicates rotation
-	// is in the corner, there cannot be a triangle there, as it would 
+	// is in the corner, there cannot be a triangle there, as it would
 	// have a side length of 0
 	if (leftMostBlackPixel === imageWidth && bottomMostBlackPixel === 0)
 		isRotated = false
 
+	// Determines if the corner of the image is a black triangle
+	// Note: this indicates that the image has been rotated by a tool
+	// such as Fiji.
 	const { cornerIsATriangle, width } = isTheCornerATriangle(
 		data,
 		imageWidth,
@@ -63,18 +68,18 @@ const allCornersAreBlack = (data, imageWidth, imageLength) => {
 }
 
 const findTrianglePoints = (data, imageWidth, imageLength) => {
-	// Find the left-most black pixel from the top right corner
 	let leftMostBlackPixel = imageWidth
 
+	// Find the left-most black pixel from the top right corner
 	for (let i = imageWidth - 1; i >= 0; i--) {
 		if (data[getImageDataIndex(i - 1, 0, imageWidth)] === 0)
 			leftMostBlackPixel = i
 		else break
 	}
 
-	// Find the bottom-most black pixel from the top right corner
 	let bottomMostBlackPixel = 0
 
+	// Find the bottom-most black pixel from the top right corner
 	for (let i = 1; i <= imageLength; i++) {
 		if (data[getImageDataIndex(imageWidth - 1, i, imageWidth)] === 0)
 			bottomMostBlackPixel = i
@@ -99,11 +104,14 @@ const isTheCornerATriangle = (
 
 	let blackArea = 0
 
+	// Count the number of black pixels in the given area
 	for (let i = leftMostBlackPixel; i < imageWidth; i++) {
 		for (let j = 0; j < bottomMostBlackPixel; j++) {
 			if (data[getImageDataIndex(i, j, imageWidth)] === 0) blackArea++
 		}
 	}
 
-	return { cornerIsATriangle: blackArea / area >= threshold, width }
+	const cornerIsATriangle = blackArea / area >= threshold
+
+	return { cornerIsATriangle, width }
 }

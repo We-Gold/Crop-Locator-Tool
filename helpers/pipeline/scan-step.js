@@ -11,11 +11,13 @@ export const optimizedScan = (
 	crop,
 	{ useEveryXPixel, useEveryXLayer, threshold }
 ) => {
+	// Scan each layer of the image for the crop
 	const [result, convertPosition] = runOptimizedScan(sourceImage, crop, {
 		useEveryXPixel,
 		useEveryXLayer,
 	})
 
+	// Finds all potential matches under the given threshold
 	const positions = findAllCloseMatches({
 		result,
 		crop,
@@ -34,6 +36,7 @@ export const matchesScan = (
 	convertPosition,
 	{ useEveryXPixel, useEveryXLayer, threshold }
 ) => {
+	// Scan the area around the given potential match
 	const [matches, _convertPosition] = confirmMatches(
 		sourceImage,
 		crop,
@@ -45,6 +48,7 @@ export const matchesScan = (
 		}
 	)
 
+	// Finds all potential matches under the given threshold
 	const matchPositions = flatten(
 		matches.map((match) => {
 			return findAllCloseMatches({

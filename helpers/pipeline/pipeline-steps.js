@@ -1,19 +1,22 @@
 import { optimizedScan, matchesScan } from "./scan-step"
 
-export const checkForErrors = ({ pipeline, i }) => {
+export const checkForErrors = (pipelineInfo) => {
 	let errors = null
 
-	const previousScanFoundMatch = () =>
-		!(pipeline[i - 1][0] == null || pipeline[i - 1][0].length === 0)
-
-	const pipelineHasValidOutputs = () =>
-		pipeline[i - 1][0].some((p) => p != null)
-
-	if (!previousScanFoundMatch() || !pipelineHasValidOutputs())
+	if (
+		!previousScanFoundMatch(pipelineInfo) ||
+		!pipelineHasValidOutputs(pipelineInfo)
+	)
 		errors = ["No match found"]
 
 	return errors
 }
+
+const previousScanFoundMatch = ({ pipeline, i }) =>
+	!(pipeline[i - 1][0] == null || pipeline[i - 1][0].length === 0)
+
+const pipelineHasValidOutputs = ({ pipeline, i }) =>
+	pipeline[i - 1][0].some((p) => p != null)
 
 export const pipelineMatchesLayer = ({
 	sourceImage,
@@ -40,6 +43,7 @@ export const pipelineMatchesLayer = ({
 
 	pipeline.push([matchPositions, convertPosition, matches])
 
+	// Increment the progress bar
 	if (layerCompleteCallback != null)
 		layerCompleteCallback({
 			layers: layersConfig.length,
@@ -61,6 +65,7 @@ export const pipelineOptimizedLayer = ({
 }) => {
 	const { useEveryXPixel, useEveryXLayer, threshold } = layerConfig
 
+	// Run an optimized scan, searching the full image for the crop
 	const [positions, convertPosition, result] = optimizedScan(
 		sourceImage,
 		crop,
@@ -69,6 +74,7 @@ export const pipelineOptimizedLayer = ({
 
 	pipeline.push([positions, convertPosition, result])
 
+	// Increment the progress bar
 	if (layerCompleteCallback != null)
 		layerCompleteCallback({
 			layers: layersConfig.length,

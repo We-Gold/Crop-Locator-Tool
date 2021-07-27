@@ -24,6 +24,19 @@ export const createScanningKernel = (sourceImage, crop, useEveryXPixel) => {
 			useEveryXPixel
 	)
 
+	// Runs the sum of absolute differences algorithm with the crop,
+	// over the entire source image layer.
+	// 
+	// Algorithm:
+	// 		Each gpu thread corresponds to a coordinate (x, y)
+	//
+	//		Using that coordinate as the top left corner of the crop,
+	// 		we take the absolute value of the difference between each pixel
+	//		of the crop and the area of the source image (starting at the given coordinate).
+	//
+	//		Each of these differences are summed, and that is the return value of this kernel
+	// 		for each thread.
+
 	const sadKernelFunction = function (sourceImageLayer, cropLayer) {
 		// Determine where to compare the crop to the source image for this thread
 		const sourceX =
@@ -105,12 +118,26 @@ export const createConfirmingKernel = (
 	originX,
 	originY
 ) => {
+	// Calculate how many scans to make per axis
 	const { xAxisScans, yAxisScans } = countScansNeededForFullCheck(
 		sourceImage,
 		crop,
 		location,
 		convertPosition
 	)
+
+	// Runs the sum of absolute differences algorithm with the crop,
+	// over the entire source image layer.
+	// 
+	// Algorithm:
+	// 		Each gpu thread corresponds to a coordinate (x, y)
+	//
+	//		Using that coordinate as the top left corner of the crop,
+	// 		we take the absolute value of the difference between each pixel
+	//		of the crop and the area of the source image (starting at the given coordinate).
+	//
+	//		Each of these differences are summed, and that is the return value of this kernel
+	// 		for each thread.
 
 	const sadKernelFunction = function (sourceImageLayer, cropLayer) {
 		// Determine where to compare the crop to the source image for this thread

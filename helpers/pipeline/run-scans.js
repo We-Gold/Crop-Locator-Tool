@@ -20,6 +20,7 @@ export const runOptimizedScan = (
 		useEveryXPixel
 	)
 
+	// Determine the range of layers to scan
 	const zAxisScans = Math.abs(sourceImage.data.length - crop.data.length)
 
 	let result = []
@@ -74,7 +75,7 @@ export const confirmMatches = (
 			convertPosition
 		)
 
-		// Creates the gpu kernel
+		// Create a gpu kernel for the given position
 		return createConfirmingKernel(
 			sourceImage,
 			crop,
@@ -88,6 +89,7 @@ export const confirmMatches = (
 
 	// Runs all of the kernels and stores their results
 	const matchesToBeScanned = kernels.map((kernel, index) => {
+		// Calculate the region of the image to scan
 		const { zScanStart, zAxisScans } = countScansNeededForFullCheck(
 			sourceImage,
 			crop,

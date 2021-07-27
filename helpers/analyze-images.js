@@ -1,5 +1,4 @@
 import { handleErrors } from "./handle-errors"
-import { displayImage } from "./show-images/display-image"
 import { images } from "./images-manager"
 import {
 	showNormalCropOverlay,
@@ -18,18 +17,21 @@ import { shouldNestImage } from "./preprocess-image/should-nest-image"
 export const analyzeImages = async () => {
 	let cropFound = false
 
+	// Searches the source image for the crop
 	const { errors, bestPosition, isRotated, reslicedDirection } =
 		await searchForCrop()
 
+	// Display any errors in the web interface
 	handleErrors(errors)
 
+	// Displays a layer of the source image if the crop could not be found
 	if (errorsArePresent(errors)) displayDefaultLayerOfSourceImage()
 	else {
 		// The crop was found during the scan
 		cropFound = true
 
+		// Creates a copy of the location of crop for later use
 		const position = createDuplicatePositionObject(bestPosition)
-
 		addOneToZ(position)
 
 		// Update the crop with its new data
@@ -39,24 +41,26 @@ export const analyzeImages = async () => {
 		// Define the main crop used for nesting
 		if (images.mainCrop == null) images.mainCrop = images.crop
 
-		if (shouldNestImage()) {
-			const cropOverlayConfig = {
-				position,
-				isNested: true,
-			}
+		// Determine if this image is nested within 
+		// the previously scanned image
+		const nestImage = shouldNestImage()
 
-			// Show the crop overlaid on the main image
-			if (isRotated) showRotatedCropOverlay(cropOverlayConfig)
-			else showNormalCropOverlay(cropOverlayConfig)
-		} else {
+		if (nestImage) {
 			// Update the main crop
 			images.mainCrop = images.crop
-
+		} else {
+			// Display the correct layer of the source image
 			displayCurrentLayerOfSourceImage()
-
-			if (isRotated) showRotatedCropOverlay({ position })
-			else showNormalCropOverlay({ position })
 		}
+
+		const cropOverlayConfig = {
+			position,
+			isNested: nestImage,
+		}
+
+		// Show the crop overlaid on the main image
+		if (isRotated) showRotatedCropOverlay(cropOverlayConfig)
+		else showNormalCropOverlay(cropOverlayConfig)
 	}
 
 	return cropFound

@@ -7,28 +7,49 @@ import { polyfillForTiff } from "../tiff-decoding/polyfill-for-tiff"
  * @param {string} axis "left", "top"
  */
 export const resliceImage = (image, axis = "left", layer = 0) => {
+	// Swap the dimensions of the image to match the reslicing algorithm
 	const dimensions = calculateReslicedDimensions(image, axis)
 
-	const pixelArray =
+	const convertToReslicedPosition =
 		axis == "top"
-			? makeReslicedImageTop(image, dimensions, layer)
-			: makeReslicedImageLeft(image, dimensions, layer)
+			? convertPositionToTopResliced
+			: convertPositionToLeftResliced
 
-	const reslicedImage = transposeImage(pixelArray, dimensions.width, dimensions.height)
+	// Reslice the image
+	const pixelArray = makeReslicedImage(
+		image,
+		dimensions,
+		convertToReslicedPosition,
+		layer
+	)
+
+	// Transpose the image (mirror over diagonal axis)
+	// Note: this corrects the orientation of the resliced image,
+	// which does not intially align with the source image
+	const reslicedImage = transposeImage(
+		pixelArray,
+		dimensions.width,
+		dimensions.height
+	)
 
 	// Creates the object with all of the data needed to replace the original crop
 	const newCrop = {
-		data: polyfillForTiff(
-			reslicedImage,
-			dimensions.length
-		),
+		data: polyfillForTiff(reslicedImage, dimensions.length),
 		original: image.data,
-		dimensions: {width: reslicedImage.width, height: reslicedImage.height},
+		dimensions: {
+			width: reslicedImage.width,
+			height: reslicedImage.height,
+		},
 		originalDimensions: image.dimensions,
 	}
 
 	return newCrop
 }
+
+const convertPositionToTopResliced = (x, layerIndex, imageWidth) =>
+	x + layerIndex * imageWidth
+const convertPositionToLeftResliced = (x, layerIndex, imageWidth) =>
+	layerIndex + x * imageWidth
 
 /**
  * Reslices an image from the top axis
@@ -37,45 +58,27 @@ export const resliceImage = (image, axis = "left", layer = 0) => {
  * @param {Object} layerIndex
  * @returns Typed array of the resulting resliced layer
  */
-const makeReslicedImageTop = (image, dimensions, layerIndex = 0) => {
+const makeReslicedImage = (
+	image,
+	dimensions,
+	convertToReslicedPosition,
+	layerIndex = 0
+) => {
 	const outputFormat = { x: dimensions.width, y: dimensions.height }
 
 	const imageWidth = image.dimensions.width
 
 	const output = []
 
+	// March through the given image's pixels,
+	// but using the indices for the resliced image.
+	// This results in the pixels being in a resliced order.
 	for (let y = 0; y < outputFormat.y; y++) {
 		for (let x = 0; x < outputFormat.x; x++) {
 			const layer = image.data[y]
 
-			const pixel = layer.data[x + layerIndex * imageWidth]
-
-			output.push(pixel)
-		}
-	}
-
-	return new Uint8Array(output)
-}
-
-/**
- * Reslices an image from the left axis
- * @param {Object} image
- * @param {Object} dimensions
- * @param {Object} layerIndex
- * @returns Typed array of the resulting resliced layer
- */
-const makeReslicedImageLeft = (image, dimensions, layerIndex = 0) => {
-	const outputFormat = { x: dimensions.width, y: dimensions.height }
-
-	const imageWidth = image.dimensions.width
-
-	const output = []
-
-	for (let y = 0; y < outputFormat.y; y++) {
-		for (let x = 0; x < outputFormat.x; x++) {
-			const layer = image.data[y]
-
-			const pixel = layer.data[layerIndex + x * imageWidth]
+			const pixel =
+				layer.data[convertToReslicedPosition(x, layerIndex, imageWidth)]
 
 			output.push(pixel)
 		}
@@ -91,21 +94,33 @@ const makeReslicedImageLeft = (image, dimensions, layerIndex = 0) => {
  * @returns The new dimensions of the imaage
  */
 const calculateReslicedDimensions = (image, axis) => {
-	if (axis == "left") {
-		return {
-			width: image.dimensions.height,
-			height: image.data.length,
-			length: image.dimensions.width,
-		}
+	let dimensions = {}
+
+	const currentDimensions = {
+		width: image.dimensions.width,
+		height: image.dimensions.height,
+		length: image.data.length,
 	}
-	if (axis == "top") {
-		return {
-			width: image.dimensions.width,
-			height: image.data.length,
-			length: image.dimensions.height,
-		}
-	}
+
+	// Swaps the dimensions of the image to match
+	// it when it is resliced
+	if (axis == "left") dimensions = resliceDimensionsLeft(currentDimensions)
+	if (axis == "top") dimensions = resliceDimensionsTop(currentDimensions)
+
+	return dimensions
 }
+
+const resliceDimensionsLeft = ({ width, height, length }) => ({
+	width: height,
+	height: length,
+	length: width,
+})
+
+const resliceDimensionsTop = ({ width, height, length }) => ({
+	width,
+	height: length,
+	length: height,
+})
 
 /**
  * Mirrors the image diagonally
