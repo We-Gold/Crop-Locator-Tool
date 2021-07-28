@@ -19,16 +19,23 @@ export const createUploadListeners = () => {
 
 	const replaceCropUploadHandler = createImageUploadHandler({
 		callback: (image) => {
-			if (images.crop == null || images.crop.position == null) return
-			if (
+			const cropHasBeenFound =
+				images.crop == null || images.crop.position == null
+
+			const cropDimensionsDoNotMatch =
 				images.crop.dimensions.width != image.dimensions.width ||
 				images.crop.dimensions.height != image.dimensions.height
-			) {
+
+			if (cropHasBeenFound) return
+
+			// Display that the image uploaded does not match the crop
+			if (cropDimensionsDoNotMatch) {
 				document.querySelector("#warning-text").style.display = "block"
 
 				return
 			}
 
+			// Hide the warning that the image uploaded does not match the crop
 			document.querySelector("#warning-text").style.display = "none"
 
 			const replacedCropCanvas = document.querySelector(
@@ -61,7 +68,7 @@ export const createUploadListeners = () => {
 const imagesAreDefined = () => images.sourceImage != null && images.crop != null
 
 const imagesAreValid = () => {
-    const validationErrors = validateSourceAndCroppedImages(
+	const validationErrors = validateSourceAndCroppedImages(
 		images.sourceImage,
 		images.crop
 	)
@@ -73,19 +80,21 @@ const imagesAreValid = () => {
 
 const createMainUploadCallback = (imageToModify) => {
 	return async (image) => {
+		// Store the uploaded image
 		images[imageToModify] = image
 
-        // Check to make sure both images are valid
+		// Check to make sure both images are valid
 		if (!imagesAreDefined() || !imagesAreValid()) return
 
-        setInitialStylesForDOMElements()
+		setInitialStylesForDOMElements()
 
-        const cropFound = await analyzeImages()
-            
-        if (cropFound) {
-            outputResults()
+		// Attempt to locate the crop in the source image
+		const cropFound = await analyzeImages()
 
-            showCropOnBlackBackground()
-        }
+		if (cropFound) {
+			outputResults()
+
+			showCropOnBlackBackground()
+		}
 	}
 }

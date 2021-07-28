@@ -202,35 +202,45 @@ export const showCroppedAreaOnImage = async ({
 	// Make every other area of the canvas black
 	ctx.fillStyle = "rgb(0,0,0)"
 
+	// Store the current transformation matrix
 	ctx.save()
 
+	// Cut out and save the crop from the source image
 	const image = await createImageBitmap(
 		ctx.getImageData(x, y, cropWidth, cropHeight)
 	)
 
+	// Fill the canvas with black
 	ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
 	// Apply transformations
 	ctx.translate(x + cropWidth / 2, y + cropHeight / 2)
 	if (angle != null) ctx.rotate(radians(angle))
 
+	// Paste the crop back into the canvas
 	ctx.drawImage(image, -cropWidth / 2, -cropHeight / 2)
 
 	// Reset the transformation matrix
 	ctx.restore()
 
+	// For rotated images, copy the image again to get the
+	// "black triangles" where data is missing.
+	// This mimics the original appearance of the rotated crops.
 	if (angle != null) {
 		ctx.save()
 
+		// Cut out the newly rotated original crop
 		const image = await createImageBitmap(
 			ctx.getImageData(x, y, cropWidth, cropHeight)
 		)
 
+		// Fill the background with black
 		ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
 		// Apply transformations
 		ctx.translate(x + cropWidth / 2, y + cropHeight / 2)
 
+		// Paste the crop back in
 		ctx.drawImage(image, -cropWidth / 2, -cropHeight / 2)
 
 		// Reset the transformation matrix
