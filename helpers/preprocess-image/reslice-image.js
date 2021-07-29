@@ -1,5 +1,6 @@
 import Image from "image-js"
 import { polyfillForTiff } from "../tiff-decoding/polyfill-for-tiff"
+import { calculateReslicedDimensions } from "./calculate-resliced-dimensions"
 
 /**
  * Reslice an image
@@ -32,18 +33,14 @@ export const resliceImage = (image, axis = "left", layer = 0) => {
 		dimensions.height
 	)
 
-	// Creates the object with all of the data needed to replace the original crop
-	const newCrop = {
+	// Update the crop image
+	return Object.assign(image, {
 		data: polyfillForTiff(reslicedImage, dimensions.length),
-		original: image.data,
 		dimensions: {
 			width: reslicedImage.width,
 			height: reslicedImage.height,
 		},
-		originalDimensions: image.dimensions,
-	}
-
-	return newCrop
+	})
 }
 
 const convertPositionToTopResliced = (x, layerIndex, imageWidth) =>
@@ -86,41 +83,6 @@ const makeReslicedImage = (
 
 	return new Uint8Array(output)
 }
-
-/**
- * Calculates the dimensions the image will have after being resliced
- * @param {Object} image
- * @param {string} axis
- * @returns The new dimensions of the imaage
- */
-const calculateReslicedDimensions = (image, axis) => {
-	let dimensions = {}
-
-	const currentDimensions = {
-		width: image.dimensions.width,
-		height: image.dimensions.height,
-		length: image.data.length,
-	}
-
-	// Swaps the dimensions of the image to match
-	// it when it is resliced
-	if (axis == "left") dimensions = resliceDimensionsLeft(currentDimensions)
-	if (axis == "top") dimensions = resliceDimensionsTop(currentDimensions)
-
-	return dimensions
-}
-
-const resliceDimensionsLeft = ({ width, height, length }) => ({
-	width: height,
-	height: length,
-	length: width,
-})
-
-const resliceDimensionsTop = ({ width, height, length }) => ({
-	width,
-	height: length,
-	length: height,
-})
 
 /**
  * Mirrors the image diagonally

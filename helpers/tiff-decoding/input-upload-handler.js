@@ -1,4 +1,5 @@
 import { handleErrors } from "../handle-errors"
+import { makeImage } from "../images-manager"
 import { loadImage } from "./load-image"
 
 export const createImageUploadHandler = ({
@@ -21,17 +22,8 @@ export const createImageUploadHandler = ({
 
 		if (data == null) return
 
-		callback({
-			data,
-			original: data,
-			dimensions: {
-				width: data[0].imageWidth,
-				height: data[0].imageLength,
-			},
-			originalDimensions: {
-				width: data[0].imageWidth,
-				height: data[0].imageLength,
-			},
-		})
+		const image = makeImage({ data })
+
+		callback(image)
 	}
 }

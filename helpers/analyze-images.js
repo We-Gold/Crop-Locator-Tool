@@ -35,13 +35,12 @@ export const analyzeImages = async () => {
 		addOneToZ(position)
 
 		// Update the crop with its new data
-		images.crop.position = position
-		images.crop.reslicedDirection = reslicedDirection
+		Object.assign(images.crop, { position, reslicedDirection })
 
 		// Define the main crop used for nesting
 		if (images.mainCrop == null) images.mainCrop = images.crop
 
-		// Determine if this image is nested within 
+		// Determine if this image is nested within
 		// the previously scanned image
 		const nestImage = shouldNestImage()
 

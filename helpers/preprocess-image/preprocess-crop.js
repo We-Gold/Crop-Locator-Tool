@@ -1,4 +1,4 @@
-import { images } from "../images-manager"
+import { images, makeImage } from "../images-manager"
 import { correctRotatedImage } from "./correct-image"
 import { isImageRotated } from "./detect-rotation"
 import { cropImage } from "./crop-image"
@@ -30,14 +30,8 @@ const preprocessRotatedCrop = (angle) => {
 		images.crop.data.length
 	)
 
-	images.crop = {
-		data: image,
-		original: images.crop.original,
-		dimensions: images.crop.dimensions,
-		originalDimensions: images.crop.originalDimensions,
-		angle,
-		isRotated: true,
-	}
+	// Update the crop object
+	Object.assign(images.crop, { data: image, angle, isRotated: true })
 }
 
 /**
@@ -53,10 +47,6 @@ const preprocessNormalCrop = () => {
 		{ width: 150, height: 150 }
 	)
 
-	images.crop = {
-		data: crop,
-		original: images.crop.original,
-		dimensions: images.crop.dimensions,
-		originalDimensions: images.crop.originalDimensions,
-	}
+	// Update the crop object
+	Object.assign(images.crop, { data: crop })
 }
